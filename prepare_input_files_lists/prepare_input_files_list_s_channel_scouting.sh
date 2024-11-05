@@ -1,7 +1,7 @@
 #!/bin/bash
 
-dataset_directory=/ceph/mgais/PFNanoAOD_SVJ_std2_UL2018_scouting_truth_study_inv_parts
-dataset_config=dataset_configs.s_channel_scouting_signal_paths
+dataset_directory=/ceph/mgais/Run2ScoutingSkims_v0
+dataset_config=dataset_configs.s_channel_scouting_new_signal_paths
 
 module=analysis_configs.s_channel_scouting_pre_selection
 selection_name=s_channel_scouting_pre_selection
@@ -21,23 +21,109 @@ dataset_names=(
     #
     # Signals
     #
-    mMed-700GeV_mDark-20GeV_rinv-0.3_alpha-peak_13TeV
+    s-channel_mMed-700_mDark-20_rinv-0.3
+    s-channel_mMed-700_mDark-20_rinv-0.5
+    s-channel_mMed-700_mDark-20_rinv-0.7
 
-    mMed-800GeV_mDark-20GeV_rinv-0.3_alpha-peak_13TeV
-    mMed-800GeV_mDark-20GeV_rinv-0.5_alpha-peak_13TeV
-    mMed-800GeV_mDark-20GeV_rinv-0.7_alpha-peak_13TeV
+    s-channel_mMed-800_mDark-20_rinv-0.3
+    s-channel_mMed-800_mDark-20_rinv-0.5
+    s-channel_mMed-800_mDark-20_rinv-0.7
 
-    mMed-900GeV_mDark-20GeV_rinv-0.3_alpha-peak_13TeV
-    mMed-900GeV_mDark-20GeV_rinv-0.5_alpha-peak_13TeV
-    mMed-900GeV_mDark-20GeV_rinv-0.7_alpha-peak_13TeV
+    s-channel_mMed-900_mDark-20_rinv-0.3
+    s-channel_mMed-900_mDark-20_rinv-0.5
+    s-channel_mMed-900_mDark-20_rinv-0.7
 
-    mMed-1000GeV_mDark-20GeV_rinv-0.3_alpha-peak_13TeV
-    mMed-1000GeV_mDark-20GeV_rinv-0.5_alpha-peak_13TeV
-    mMed-1000GeV_mDark-20GeV_rinv-0.7_alpha-peak_13TeV
+    s-channel_mMed-1000_mDark-20_rinv-0.3
+    s-channel_mMed-1000_mDark-20_rinv-0.5
+    s-channel_mMed-1000_mDark-20_rinv-0.7
 
-    mMed-1500GeV_mDark-20GeV_rinv-0.3_alpha-peak_13TeV
-    mMed-1500GeV_mDark-20GeV_rinv-0.5_alpha-peak_13TeV
-    mMed-1500GeV_mDark-20GeV_rinv-0.7_alpha-peak_13TeV
+    s-channel_mMed-1500_mDark-20_rinv-0.3
+    s-channel_mMed-1500_mDark-20_rinv-0.5
+    s-channel_mMed-1500_mDark-20_rinv-0.7
+
+    s-channel_mMed-3000_mDark-20_rinv-0.3
+    s-channel_mMed-3000_mDark-20_rinv-0.5
+    s-channel_mMed-3000_mDark-20_rinv-0.7
+
+    s-channel_mMed-700_mDark-20_rinv-0.3
+    s-channel_mMed-700_mDark-20_rinv-0.5
+    s-channel_mMed-700_mDark-20_rinv-0.7
+
+    s-channel_mMed-800_mDark-20_rinv-0.3
+    s-channel_mMed-800_mDark-20_rinv-0.5
+    s-channel_mMed-800_mDark-20_rinv-0.7
+
+    s-channel_mMed-900_mDark-20_rinv-0.3
+    s-channel_mMed-900_mDark-20_rinv-0.5
+    s-channel_mMed-900_mDark-20_rinv-0.7
+
+    s-channel_mMed-1000_mDark-20_rinv-0.3
+    s-channel_mMed-1000_mDark-20_rinv-0.5
+    s-channel_mMed-1000_mDark-20_rinv-0.7
+
+    s-channel_mMed-1500_mDark-20_rinv-0.3
+    s-channel_mMed-1500_mDark-20_rinv-0.5
+    s-channel_mMed-1500_mDark-20_rinv-0.7
+
+    s-channel_mMed-700GeV_mDark-20GeV_rinv-0.3_alpha-peak_13TeV-pythia8_n-2000
+    s-channel_mMed-700GeV_mDark-20GeV_rinv-0.5_alpha-peak_13TeV-pythia8_n-2000
+    s-channel_mMed-700GeV_mDark-20GeV_rinv-0.7_alpha-peak_13TeV-pythia8_n-2000
+
+    s-channel_mMed-800GeV_mDark-20GeV_rinv-0.3_alpha-peak_13TeV-pythia8_n-2000
+    s-channel_mMed-800GeV_mDark-20GeV_rinv-0.5_alpha-peak_13TeV-pythia8_n-2000
+    s-channel_mMed-800GeV_mDark-20GeV_rinv-0.7_alpha-peak_13TeV-pythia8_n-2000
+
+    s-channel_mMed-900GeV_mDark-20GeV_rinv-0.3_alpha-peak_13TeV-pythia8_n-2000
+    s-channel_mMed-900GeV_mDark-20GeV_rinv-0.5_alpha-peak_13TeV-pythia8_n-2000
+    s-channel_mMed-900GeV_mDark-20GeV_rinv-0.7_alpha-peak_13TeV-pythia8_n-2000
+
+    s-channel_mMed-1100GeV_mDark-20GeV_rinv-0.3_alpha-peak_13TeV-pythia8_n-2000
+    s-channel_mMed-1100GeV_mDark-20GeV_rinv-0.5_alpha-peak_13TeV-pythia8_n-2000
+    s-channel_mMed-1100GeV_mDark-20GeV_rinv-0.7_alpha-peak_13TeV-pythia8_n-2000
+
+    s-channel_mMed-1200GeV_mDark-20GeV_rinv-0.3_alpha-peak_13TeV-pythia8_n-2000
+    s-channel_mMed-1200GeV_mDark-20GeV_rinv-0.5_alpha-peak_13TeV-pythia8_n-2000
+    s-channel_mMed-1200GeV_mDark-20GeV_rinv-0.7_alpha-peak_13TeV-pythia8_n-2000
+
+    s-channel_mMed-1300GeV_mDark-20GeV_rinv-0.3_alpha-peak_13TeV-pythia8_n-2000
+    s-channel_mMed-1300GeV_mDark-20GeV_rinv-0.5_alpha-peak_13TeV-pythia8_n-2000
+    s-channel_mMed-1300GeV_mDark-20GeV_rinv-0.7_alpha-peak_13TeV-pythia8_n-2000
+
+    s-channel_mMed-1400GeV_mDark-20GeV_rinv-0.3_alpha-peak_13TeV-pythia8_n-2000
+    s-channel_mMed-1400GeV_mDark-20GeV_rinv-0.5_alpha-peak_13TeV-pythia8_n-2000
+    s-channel_mMed-1400GeV_mDark-20GeV_rinv-0.7_alpha-peak_13TeV-pythia8_n-2000
+
+    s-channel_mMed-1500GeV_mDark-20GeV_rinv-0.3_alpha-peak_13TeV-pythia8_n-2000
+    s-channel_mMed-1500GeV_mDark-20GeV_rinv-0.5_alpha-peak_13TeV-pythia8_n-2000
+    s-channel_mMed-1500GeV_mDark-20GeV_rinv-0.7_alpha-peak_13TeV-pythia8_n-2000
+    
+    #
+    # Backgrounds
+    #
+    # QCD
+    #
+    QCD_HT200to300
+    QCD_HT300to500
+    QCD_HT500to700
+    QCD_HT700to1000
+    QCD_HT1000to1500
+    QCD_HT1500to2000
+    QCD_HT2000toInf
+    QCD_HT100to200
+
+    #
+    # TTJets
+    #
+    TTJets_2430000
+
+    #
+    # WJets
+    #
+    WJets_inclusive_260000
+    WJets_inclusive_270000
+    WJets_inclusive_280000
+    WJets_inclusive_40000
+    WJets_inclusive_50000
 )
 
 prepare_input_files_list() {
