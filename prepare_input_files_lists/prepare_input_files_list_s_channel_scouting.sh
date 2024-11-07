@@ -21,46 +21,6 @@ dataset_names=(
     #
     # Signals
     #
-    s-channel_mMed-700_mDark-20_rinv-0.3
-    s-channel_mMed-700_mDark-20_rinv-0.5
-    s-channel_mMed-700_mDark-20_rinv-0.7
-
-    s-channel_mMed-800_mDark-20_rinv-0.3
-    s-channel_mMed-800_mDark-20_rinv-0.5
-    s-channel_mMed-800_mDark-20_rinv-0.7
-
-    s-channel_mMed-900_mDark-20_rinv-0.3
-    s-channel_mMed-900_mDark-20_rinv-0.5
-    s-channel_mMed-900_mDark-20_rinv-0.7
-
-    s-channel_mMed-1000_mDark-20_rinv-0.3
-    s-channel_mMed-1000_mDark-20_rinv-0.5
-    s-channel_mMed-1000_mDark-20_rinv-0.7
-
-    s-channel_mMed-1100_mDark-20_rinv-0.3
-    s-channel_mMed-1100_mDark-20_rinv-0.5
-    s-channel_mMed-1100_mDark-20_rinv-0.7
-
-    s-channel_mMed-1200_mDark-20_rinv-0.3
-    s-channel_mMed-1200_mDark-20_rinv-0.5
-    s-channel_mMed-1200_mDark-20_rinv-0.7
-
-    s-channel_mMed-1300_mDark-20_rinv-0.3
-    s-channel_mMed-1300_mDark-20_rinv-0.5
-    s-channel_mMed-1300_mDark-20_rinv-0.7
-
-    s-channel_mMed-1400_mDark-20_rinv-0.3
-    s-channel_mMed-1400_mDark-20_rinv-0.5
-    s-channel_mMed-1400_mDark-20_rinv-0.7
-
-    s-channel_mMed-1500_mDark-20_rinv-0.3
-    s-channel_mMed-1500_mDark-20_rinv-0.5
-    s-channel_mMed-1500_mDark-20_rinv-0.7
-
-    s-channel_mMed-3000_mDark-20_rinv-0.3
-    s-channel_mMed-3000_mDark-20_rinv-0.5
-    s-channel_mMed-3000_mDark-20_rinv-0.7
-
     # s-channel_mMed-700_mDark-20_rinv-0.3
     # s-channel_mMed-700_mDark-20_rinv-0.5
     # s-channel_mMed-700_mDark-20_rinv-0.7
@@ -77,42 +37,30 @@ dataset_names=(
     # s-channel_mMed-1000_mDark-20_rinv-0.5
     # s-channel_mMed-1000_mDark-20_rinv-0.7
 
+    # s-channel_mMed-1100_mDark-20_rinv-0.3
+    # s-channel_mMed-1100_mDark-20_rinv-0.5
+    # s-channel_mMed-1100_mDark-20_rinv-0.7
+
+    # s-channel_mMed-1200_mDark-20_rinv-0.3
+    # s-channel_mMed-1200_mDark-20_rinv-0.5
+    # s-channel_mMed-1200_mDark-20_rinv-0.7
+
+    # s-channel_mMed-1300_mDark-20_rinv-0.3
+    # s-channel_mMed-1300_mDark-20_rinv-0.5
+    # s-channel_mMed-1300_mDark-20_rinv-0.7
+
+    # s-channel_mMed-1400_mDark-20_rinv-0.3
+    # s-channel_mMed-1400_mDark-20_rinv-0.5
+    # s-channel_mMed-1400_mDark-20_rinv-0.7
+
     # s-channel_mMed-1500_mDark-20_rinv-0.3
     # s-channel_mMed-1500_mDark-20_rinv-0.5
     # s-channel_mMed-1500_mDark-20_rinv-0.7
 
-    # s-channel_mMed-700GeV_mDark-20GeV_rinv-0.3_alpha-peak_13TeV-pythia8_n-2000
-    # s-channel_mMed-700GeV_mDark-20GeV_rinv-0.5_alpha-peak_13TeV-pythia8_n-2000
-    # s-channel_mMed-700GeV_mDark-20GeV_rinv-0.7_alpha-peak_13TeV-pythia8_n-2000
+    # s-channel_mMed-3000_mDark-20_rinv-0.3
+    # s-channel_mMed-3000_mDark-20_rinv-0.5
+    # s-channel_mMed-3000_mDark-20_rinv-0.7
 
-    # s-channel_mMed-800GeV_mDark-20GeV_rinv-0.3_alpha-peak_13TeV-pythia8_n-2000
-    # s-channel_mMed-800GeV_mDark-20GeV_rinv-0.5_alpha-peak_13TeV-pythia8_n-2000
-    # s-channel_mMed-800GeV_mDark-20GeV_rinv-0.7_alpha-peak_13TeV-pythia8_n-2000
-
-    # s-channel_mMed-900GeV_mDark-20GeV_rinv-0.3_alpha-peak_13TeV-pythia8_n-2000
-    # s-channel_mMed-900GeV_mDark-20GeV_rinv-0.5_alpha-peak_13TeV-pythia8_n-2000
-    # s-channel_mMed-900GeV_mDark-20GeV_rinv-0.7_alpha-peak_13TeV-pythia8_n-2000
-
-    # s-channel_mMed-1100GeV_mDark-20GeV_rinv-0.3_alpha-peak_13TeV-pythia8_n-2000
-    # s-channel_mMed-1100GeV_mDark-20GeV_rinv-0.5_alpha-peak_13TeV-pythia8_n-2000
-    # s-channel_mMed-1100GeV_mDark-20GeV_rinv-0.7_alpha-peak_13TeV-pythia8_n-2000
-
-    # s-channel_mMed-1200GeV_mDark-20GeV_rinv-0.3_alpha-peak_13TeV-pythia8_n-2000
-    # s-channel_mMed-1200GeV_mDark-20GeV_rinv-0.5_alpha-peak_13TeV-pythia8_n-2000
-    # s-channel_mMed-1200GeV_mDark-20GeV_rinv-0.7_alpha-peak_13TeV-pythia8_n-2000
-
-    # s-channel_mMed-1300GeV_mDark-20GeV_rinv-0.3_alpha-peak_13TeV-pythia8_n-2000
-    # s-channel_mMed-1300GeV_mDark-20GeV_rinv-0.5_alpha-peak_13TeV-pythia8_n-2000
-    # s-channel_mMed-1300GeV_mDark-20GeV_rinv-0.7_alpha-peak_13TeV-pythia8_n-2000
-
-    # s-channel_mMed-1400GeV_mDark-20GeV_rinv-0.3_alpha-peak_13TeV-pythia8_n-2000
-    # s-channel_mMed-1400GeV_mDark-20GeV_rinv-0.5_alpha-peak_13TeV-pythia8_n-2000
-    # s-channel_mMed-1400GeV_mDark-20GeV_rinv-0.7_alpha-peak_13TeV-pythia8_n-2000
-
-    # s-channel_mMed-1500GeV_mDark-20GeV_rinv-0.3_alpha-peak_13TeV-pythia8_n-2000
-    # s-channel_mMed-1500GeV_mDark-20GeV_rinv-0.5_alpha-peak_13TeV-pythia8_n-2000
-    # s-channel_mMed-1500GeV_mDark-20GeV_rinv-0.7_alpha-peak_13TeV-pythia8_n-2000
-    
     #
     # Backgrounds
     #

@@ -17,17 +17,21 @@ def process(events, cut_flow, year, primary_dataset="", pn_tagger=False, **kwarg
     skimmer_utils.update_cut_flow(cut_flow, "Trigger", events)
 
     # Good jet filters
-    events = sequences.apply_good_ak8_jet_filter(events)
+    print("number of events after applying the trigger cut",len(events))
+    if len(events) != 0:
+        events = sequences.apply_good_ak8_jet_filter(events)
     skimmer_utils.update_cut_flow(cut_flow, "GoodJetsAK8", events)
 
 
     # Adding JetsAK8_isGood branch already so that it can be used
     # in the rest of the pre-selection
-    events = sequences.add_good_ak8_jet_branch(events)
+    if len(events) != 0:
+        events = sequences.add_good_ak8_jet_branch(events)
 
     # Requiring at least 2 good FatJets
-    filter = ak.count(events.FatJet_pt[events.FatJet_isGood], axis=1) >= 2
-    events = events[filter]
+    if len(events) != 0:
+        filter = ak.count(events.FatJet_pt[events.FatJet_isGood], axis=1) >= 2
+        events = events[filter]
     skimmer_utils.update_cut_flow(cut_flow, "nJetsAK8Gt2", events)
 
     #apply RT filter (RT = MET over MT)
@@ -115,7 +119,8 @@ def process(events, cut_flow, year, primary_dataset="", pn_tagger=False, **kwarg
 
     skimmer_utils.update_cut_flow(cut_flow, "DeltaPhiMin selection", events)
     
-    events = sequences.add_analysis_branches(events)
+    if len(events) != 0:
+        events = sequences.add_analysis_branches(events)
     if sequences.has_dark_quark_info(events):
         events = sequences.add_dark_quark_matching(events)
     events = sequences.remove_collections(events)
