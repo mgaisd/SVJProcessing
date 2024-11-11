@@ -17,12 +17,19 @@ def process(events, cut_flow, year, primary_dataset="", pn_tagger=False, **kwarg
     skimmer_utils.update_cut_flow(cut_flow, "Trigger", events)
 
     # Good jet filters
-    print("number of events after applying the trigger cut",len(events))
-    if len(events) != 0:
+    #print("--------------------")
+    #print("number of events after applying the trigger cut",len(events))
+    #print("number of jets in the file",ak.count(events.FatJet_pt))
+    #print("--------------------")
+    if ak.count(events.FatJet_pt) != 0:
         events = sequences.apply_good_ak8_jet_filter(events)
     skimmer_utils.update_cut_flow(cut_flow, "GoodJetsAK8", events)
 
 
+    # Removing events with no jets to avoid crashes
+    filter_njets = ak.count(events.FatJet_pt, axis=1) > 0
+    events = events[filter_njets]
+    
     # Adding JetsAK8_isGood branch already so that it can be used
     # in the rest of the pre-selection
     if len(events) != 0:

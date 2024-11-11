@@ -69,8 +69,8 @@ datasets_info = {
 # ]
 
 qcd_bins = [
-    "QCD_HT100to200",
-    "QCD_HT200to300",
+    #"QCD_HT100to200",
+    #"QCD_HT200to300",
     "QCD_HT300to500",
     "QCD_HT500to700",
     "QCD_HT700to1000",
@@ -156,8 +156,10 @@ for year in years:
     datasets_info[year].update({
         bin: [
             {
-                "redirector": "root://storage01.lcg.cscs.ch:1096//",
-                "path": f"/pnfs/lcg.cscs.ch/cms/trivcat/store/user/cazzanig/darkshowers/samples/scouting/PFNano/QCD_HT_binned_2018_v0/{bin}/",
+                #"redirector": "root://storage01.lcg.cscs.ch:1096//",
+                #"path": f"/pnfs/lcg.cscs.ch/cms/trivcat/store/user/cazzanig/darkshowers/samples/scouting/PFNano/QCD_HT_binned_2018_v0/{bin}/",
+                "redirector": "root://cmsdcache-kit-disk.gridka.de:1094/",
+                "path": f"/store/user/mgaisdor/QCD_HT_binned_2018_v0/{bin}/",
                 "regex": f"",
                 
             },
@@ -169,8 +171,10 @@ for year in years:
     datasets_info[year].update({
         bin: [
             {
-                "redirector": "root://storage01.lcg.cscs.ch:1096//",
-                "path": f"/pnfs/lcg.cscs.ch/cms/trivcat/store/user/cazzanig/darkshowers/samples/scouting/PFNano/TTJets_inclusive_2018_v0/{bin}/",
+                #"redirector": "root://storage01.lcg.cscs.ch:1096//",
+                #"path": f"/pnfs/lcg.cscs.ch/cms/trivcat/store/user/cazzanig/darkshowers/samples/scouting/PFNano/TTJets_inclusive_2018_v0/{bin}/",
+                "redirector": "root://cmsdcache-kit-disk.gridka.de:1094/",
+                "path": f"/store/user/mgaisdor/TTJets_inclusive_2018_v0/{bin}/",
                 "regex": f"",
                 
             },
@@ -182,8 +186,10 @@ for year in years:
     datasets_info[year].update({
         bin: [
             {
-                "redirector": "root://storage01.lcg.cscs.ch:1096//",
-                "path": f"/pnfs/lcg.cscs.ch/cms/trivcat/store/user/cazzanig/darkshowers/samples/scouting/PFNano/WJets_inclusive_2018_v0/{bin}/",
+                #"redirector": "root://storage01.lcg.cscs.ch:1096//",
+                #"path": f"/pnfs/lcg.cscs.ch/cms/trivcat/store/user/cazzanig/darkshowers/samples/scouting/PFNano/WJets_inclusive_2018_v0/{bin}/",
+                "redirector": "root://cmsdcache-kit-disk.gridka.de:1094/",
+                "path": f"/store/user/mgaisdor/WJets_inclusive_2018_v0/{bin}/",
                 "regex": f"",
                 
             },

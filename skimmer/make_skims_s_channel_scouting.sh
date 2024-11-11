@@ -8,7 +8,7 @@ N_WORKERS=30
 PORT=3719 # port for dask scheduler, needs to be opened by admins
 #N_WORKERS=6
 EXECUTOR=futures     # local job
-FORCE_RECREATE=0   # 1 to recreate output file if it exists, 0 else
+FORCE_RECREATE=1   # 1 to recreate output file if it exists, 0 else
 FIRST_FILE=0
 LAST_FILE=-1  # Use -1 to skim all input files
 
@@ -32,97 +32,141 @@ variation=nominal  # nominal jec_up jec_down jer_up jer_down
 
 # Output directory for nominal samples - no variation of the uncertainties
 #output_directory=root://cmseos.fnal.gov//store/user/lpcdarkqcd/tchannel_UL/${year}/Full/PrivateSkims/${variation}
-output_directory=root://cmsdcache-kit-disk.gridka.de:1094//store/user/mgaisdor/skimmed_signal/
+output_directory=root://cmsdcache-kit-disk.gridka.de:1094//store/user/mgaisdor/skimmed_background/
 
 
 dataset_names=(
     #
     # Signals
     #
-    s-channel_mMed-700_mDark-20_rinv-0.3
-    s-channel_mMed-700_mDark-20_rinv-0.5
-    s-channel_mMed-700_mDark-20_rinv-0.7
+    # s-channel_mMed-700_mDark-20_rinv-0.3
+    # s-channel_mMed-700_mDark-20_rinv-0.5
+    # s-channel_mMed-700_mDark-20_rinv-0.7
 
-    s-channel_mMed-800_mDark-20_rinv-0.3
-    s-channel_mMed-800_mDark-20_rinv-0.5
-    s-channel_mMed-800_mDark-20_rinv-0.7
+    # s-channel_mMed-800_mDark-20_rinv-0.3
+    # s-channel_mMed-800_mDark-20_rinv-0.5
+    # s-channel_mMed-800_mDark-20_rinv-0.7
 
-    s-channel_mMed-900_mDark-20_rinv-0.3
-    s-channel_mMed-900_mDark-20_rinv-0.5
-    s-channel_mMed-900_mDark-20_rinv-0.7
+    # s-channel_mMed-900_mDark-20_rinv-0.3
+    # s-channel_mMed-900_mDark-20_rinv-0.5
+    # s-channel_mMed-900_mDark-20_rinv-0.7
 
-    s-channel_mMed-1000_mDark-20_rinv-0.3
-    s-channel_mMed-1000_mDark-20_rinv-0.5
-    s-channel_mMed-1000_mDark-20_rinv-0.7
+    # s-channel_mMed-1000_mDark-20_rinv-0.3
+    # s-channel_mMed-1000_mDark-20_rinv-0.5
+    # s-channel_mMed-1000_mDark-20_rinv-0.7
 
-    s-channel_mMed-1100_mDark-20_rinv-0.3
-    s-channel_mMed-1100_mDark-20_rinv-0.5
-    s-channel_mMed-1100_mDark-20_rinv-0.7
+    # s-channel_mMed-1100_mDark-20_rinv-0.3
+    # s-channel_mMed-1100_mDark-20_rinv-0.5
+    # s-channel_mMed-1100_mDark-20_rinv-0.7
 
-    s-channel_mMed-1200_mDark-20_rinv-0.3
-    s-channel_mMed-1200_mDark-20_rinv-0.5
-    s-channel_mMed-1200_mDark-20_rinv-0.7
+    # s-channel_mMed-1200_mDark-20_rinv-0.3
+    # s-channel_mMed-1200_mDark-20_rinv-0.5
+    # s-channel_mMed-1200_mDark-20_rinv-0.7
 
-    s-channel_mMed-1300_mDark-20_rinv-0.3
-    s-channel_mMed-1300_mDark-20_rinv-0.5
-    s-channel_mMed-1300_mDark-20_rinv-0.7
+    # s-channel_mMed-1300_mDark-20_rinv-0.3
+    # s-channel_mMed-1300_mDark-20_rinv-0.5
+    # s-channel_mMed-1300_mDark-20_rinv-0.7
 
-    s-channel_mMed-1400_mDark-20_rinv-0.3
-    s-channel_mMed-1400_mDark-20_rinv-0.5
-    s-channel_mMed-1400_mDark-20_rinv-0.7
+    # s-channel_mMed-1400_mDark-20_rinv-0.3
+    # s-channel_mMed-1400_mDark-20_rinv-0.5
+    # s-channel_mMed-1400_mDark-20_rinv-0.7
 
-    s-channel_mMed-1500_mDark-20_rinv-0.3
-    s-channel_mMed-1500_mDark-20_rinv-0.5
-    s-channel_mMed-1500_mDark-20_rinv-0.7
+    # s-channel_mMed-1500_mDark-20_rinv-0.3
+    # s-channel_mMed-1500_mDark-20_rinv-0.5
+    # s-channel_mMed-1500_mDark-20_rinv-0.7
 
-    s-channel_mMed-3000_mDark-20_rinv-0.3
-    s-channel_mMed-3000_mDark-20_rinv-0.5
-    s-channel_mMed-3000_mDark-20_rinv-0.7
+    # s-channel_mMed-3000_mDark-20_rinv-0.3
+    # s-channel_mMed-3000_mDark-20_rinv-0.5
+    # s-channel_mMed-3000_mDark-20_rinv-0.7
+
+    #
+    # Backgrounds
+    #
+    # QCD
+    # QCD_HT300to500
+    # QCD_HT500to700
+    # QCD_HT700to1000
+    # QCD_HT1000to1500
+    # QCD_HT1500to2000
+    # QCD_HT2000toInf
+
+    # TTJets
+    # TTJets_2430000
+
+    # WJets
+    # WJets_inclusive_260000
+    # WJets_inclusive_270000
+    # WJets_inclusive_280000
+    # WJets_inclusive_40000
+    WJets_inclusive_50000
+
 )
 
 cross_sections=(
+    # see https://github.com/CMS-SVJ-scouting/SVJScouting_ntuplizer/wiki/Cross-sections
     #
     # Signals
     #
-    34.55
-    34.55
-    34.55
+    # 34.55
+    # 34.55
+    # 34.55
 
-    23.28
-    23.28
-    23.28
+    # 23.28
+    # 23.28
+    # 23.28
 
-    15.69
-    15.69
-    15.69
+    # 15.69
+    # 15.69
+    # 15.69
 
-    10.57
-    10.57
-    10.57
+    # 10.57
+    # 10.57
+    # 10.57
 
-    7.122
-    7.122
-    7.122
+    # 7.122
+    # 7.122
+    # 7.122
 
-    4.924
-    4.924
-    4.924
+    # 4.924
+    # 4.924
+    # 4.924
 
-    3.476
-    3.476
-    3.476
+    # 3.476
+    # 3.476
+    # 3.476
 
-    2.498
-    2.498
-    2.498
+    # 2.498
+    # 2.498
+    # 2.498
 
-    1.822
-    1.822
-    1.822
+    # 1.822
+    # 1.822
+    # 1.822
 
-    0.0412
-    0.0412
-    0.0412
+    # 0.0412
+    # 0.0412
+    # 0.0412
+
+    #
+    # Backgrounds
+    #
+    # QCD
+    # 323400
+    # 30140
+    # 6310
+    # 1094
+    # 99.38
+    # 20.20
+
+    # TTJets
+    # 471.7
+
+    # WJets
+    # 52940
+    # 52940
+    # 52940
+    # 52940
+    52940
 )
 
 

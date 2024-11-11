@@ -66,14 +66,15 @@ dataset_names=(
     #
     # QCD
     #
-    QCD_HT200to300
+    #QCD_HT100to200
+    #QCD_HT200to300
     QCD_HT300to500
     QCD_HT500to700
     QCD_HT700to1000
     QCD_HT1000to1500
     QCD_HT1500to2000
     QCD_HT2000toInf
-    QCD_HT100to200
+
 
     #
     # TTJets
@@ -103,7 +104,7 @@ prepare_input_files_list() {
     echo "Preparing input files for dataset ${dataset_name} year ${year} and selection ${selection_name}"
 
     python list_dataset_files.py -d ${dataset_name} -y ${year} -c ${dataset_config} -o ${dataset_directory} -nano_scout
-    python compute_unweighted_selection_efficiency.py -d ${dataset_name} -y ${year} -p ${module} -s ${selection_name} -i ${dataset_directory} -o ${dataset_directory} -n 6 -e futures -c 10000 -nano_scout
+    python compute_unweighted_selection_efficiency.py -d ${dataset_name} -y ${year} -p ${module} -s ${selection_name} -i ${dataset_directory} -o ${dataset_directory} -n 30 -e futures -c 10000 -nano_scout  -precision 15
     python prepare_input_files_list.py -d ${dataset_name} -y ${year} -s ${selection_name} -i ${dataset_directory} -o ${dataset_directory} -m 50000
 }
 

@@ -2,7 +2,7 @@
 
 N_WORKERS=6
 
-dataset_directory=/ceph/mgais/PFNanoAOD_SVJ_std2_UL2018_scouting_truth_study_inv_parts
+dataset_directory=/ceph/mgais/Run2ScoutingSkims_v0
 
 selection_name=s_channel_scouting_pre_selection
 #selection_name=t_channel_wnae_qcd_training_region
@@ -12,30 +12,73 @@ selection_name=s_channel_scouting_pre_selection
 year=2018
 
 # Output directory for nominal samples - no variation of the uncertainties
-output_directory=root://cmsdcache-kit-disk.gridka.de:1094//store/user/mgaisdor/Condor_skimmed_SVJ_std2_UL2018_scouting_truth_study_inv_parts/
+output_directory=root://cmsdcache-kit-disk.gridka.de:1094//store/user/mgaisdor/skimmed_background/
 
 
 dataset_names=(
     #
     # Signals
     #
-    mMed-700GeV_mDark-20GeV_rinv-0.3_alpha-peak_13TeV
+    # s-channel_mMed-700_mDark-20_rinv-0.3
+    # s-channel_mMed-700_mDark-20_rinv-0.5
+    # s-channel_mMed-700_mDark-20_rinv-0.7
 
-    mMed-800GeV_mDark-20GeV_rinv-0.3_alpha-peak_13TeV
-    mMed-800GeV_mDark-20GeV_rinv-0.5_alpha-peak_13TeV
-    mMed-800GeV_mDark-20GeV_rinv-0.7_alpha-peak_13TeV
+    # s-channel_mMed-800_mDark-20_rinv-0.3
+    # s-channel_mMed-800_mDark-20_rinv-0.5
+    # s-channel_mMed-800_mDark-20_rinv-0.7
 
-    mMed-900GeV_mDark-20GeV_rinv-0.3_alpha-peak_13TeV
-    mMed-900GeV_mDark-20GeV_rinv-0.5_alpha-peak_13TeV
-    mMed-900GeV_mDark-20GeV_rinv-0.7_alpha-peak_13TeV
+    # s-channel_mMed-900_mDark-20_rinv-0.3
+    # s-channel_mMed-900_mDark-20_rinv-0.5
+    # s-channel_mMed-900_mDark-20_rinv-0.7
 
-    mMed-1000GeV_mDark-20GeV_rinv-0.3_alpha-peak_13TeV
-    mMed-1000GeV_mDark-20GeV_rinv-0.5_alpha-peak_13TeV
-    mMed-1000GeV_mDark-20GeV_rinv-0.7_alpha-peak_13TeV
+    # s-channel_mMed-1000_mDark-20_rinv-0.3
+    # s-channel_mMed-1000_mDark-20_rinv-0.5
+    # s-channel_mMed-1000_mDark-20_rinv-0.7
 
-    mMed-1500GeV_mDark-20GeV_rinv-0.3_alpha-peak_13TeV
-    mMed-1500GeV_mDark-20GeV_rinv-0.5_alpha-peak_13TeV
-    mMed-1500GeV_mDark-20GeV_rinv-0.7_alpha-peak_13TeV
+    # s-channel_mMed-1100_mDark-20_rinv-0.3
+    # s-channel_mMed-1100_mDark-20_rinv-0.5
+    # s-channel_mMed-1100_mDark-20_rinv-0.7
+
+    # s-channel_mMed-1200_mDark-20_rinv-0.3
+    # s-channel_mMed-1200_mDark-20_rinv-0.5
+    # s-channel_mMed-1200_mDark-20_rinv-0.7
+
+    # s-channel_mMed-1300_mDark-20_rinv-0.3
+    # s-channel_mMed-1300_mDark-20_rinv-0.5
+    # s-channel_mMed-1300_mDark-20_rinv-0.7
+
+    # s-channel_mMed-1400_mDark-20_rinv-0.3
+    # s-channel_mMed-1400_mDark-20_rinv-0.5
+    # s-channel_mMed-1400_mDark-20_rinv-0.7
+
+    # s-channel_mMed-1500_mDark-20_rinv-0.3
+    # s-channel_mMed-1500_mDark-20_rinv-0.5
+    # s-channel_mMed-1500_mDark-20_rinv-0.7
+
+    # s-channel_mMed-3000_mDark-20_rinv-0.3
+    # s-channel_mMed-3000_mDark-20_rinv-0.5
+    # s-channel_mMed-3000_mDark-20_rinv-0.7
+
+    #
+    # Backgrounds
+    #
+    # QCD
+    QCD_HT300to500
+    QCD_HT500to700
+    QCD_HT700to1000
+    QCD_HT1000to1500
+    QCD_HT1500to2000
+    QCD_HT2000toInf
+
+    TTJets
+    TTJets_2430000
+
+    WJets
+    WJets_inclusive_260000
+    WJets_inclusive_270000
+    WJets_inclusive_280000
+    WJets_inclusive_40000
+    WJets_inclusive_50000
 )
 
 check_number_of_events() {

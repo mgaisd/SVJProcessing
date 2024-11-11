@@ -329,23 +329,23 @@ def make_constituents_per_jet(constituents_per_event, n_jets, jet_idx_field_name
             Jet index field name in the constituents_per_event ak array.
     """
 
-    #if len(n_jets) == 0:
-    #    return ak.Array([]), ak.Array([])
+    #if ak.all(n_jets) == 0:
+        #return ak.Array([]), ak.Array([])
 
     constituents_per_event = akUtl.sort_array_with_fields(constituents_per_event, jet_idx_field_name, ascending=True)
     counts = count_constituents(constituents_per_event[jet_idx_field_name], n_jets)
 
     flat_counts = ak.flatten(counts)
     flat_counts = ak.values_astype(flat_counts, np.int64)
-    print("-----------------")
-    print("constituents per event",constituents_per_event)
-    print("n_jets",n_jets)
-    print("flat counts of constituents per jet",flat_counts)
-    print("-----------------")
-    print("-----------------")
+    # print("-----------------")
+    #print("constituents per event",constituents_per_event)
+    #print("n_jets",n_jets)
+    #print("flat counts of constituents per jet",flat_counts)
+    # print("-----------------")
+    # print("-----------------")
     flat_constituents = ak.flatten(constituents_per_event)
     constituents_per_jet = ak.unflatten(flat_constituents, flat_counts, axis=0)
-    print("constituents per jet",constituents_per_jet)
-    print("-----------------")
+    #print("constituents per jet",constituents_per_jet)
+    #print("-----------------")
 
     return constituents_per_jet, counts
