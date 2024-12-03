@@ -2,13 +2,13 @@
 
 MEMORY=4GB
 CORES=1
-CHUNK_SIZE=10000
+CHUNK_SIZE=500 #10000
 N_WORKERS=30
 #EXECUTOR=dask/etpcondor   # HTCondor at KIT ETP
 PORT=3719 # port for dask scheduler, needs to be opened by admins
 #N_WORKERS=6
 EXECUTOR=futures     # local job
-FORCE_RECREATE=1   # 1 to recreate output file if it exists, 0 else
+FORCE_RECREATE=0   # 1 to recreate output file if it exists, 0 else
 FIRST_FILE=0
 LAST_FILE=-1  # Use -1 to skim all input files
 
@@ -36,9 +36,9 @@ output_directory=root://cmsdcache-kit-disk.gridka.de:1094//store/user/mgaisdor/s
 
 
 dataset_names=(
-    #
-    # Signals
-    #
+    # #
+    # # Signals
+    # #
     # s-channel_mMed-700_mDark-20_rinv-0.3
     # s-channel_mMed-700_mDark-20_rinv-0.5
     # s-channel_mMed-700_mDark-20_rinv-0.7
@@ -83,30 +83,29 @@ dataset_names=(
     # Backgrounds
     #
     # QCD
-    # QCD_HT300to500
-    # QCD_HT500to700
-    # QCD_HT700to1000
-    # QCD_HT1000to1500
-    # QCD_HT1500to2000
-    # QCD_HT2000toInf
+    #QCD_HT700to1000
+    #QCD_HT1000to1500
+    QCD_HT1500to2000
+    QCD_HT2000toInf
+    QCD_HT300to500
+    QCD_HT500to700
 
     # TTJets
-    # TTJets_2430000
+    TTJets_2430000
 
-    # WJets
+    # # WJets
     # WJets_inclusive_260000
     # WJets_inclusive_270000
     # WJets_inclusive_280000
     # WJets_inclusive_40000
-    WJets_inclusive_50000
-
+    # WJets_inclusive_50000
 )
 
 cross_sections=(
-    # see https://github.com/CMS-SVJ-scouting/SVJScouting_ntuplizer/wiki/Cross-sections
-    #
-    # Signals
-    #
+    # # see https://github.com/CMS-SVJ-scouting/SVJScouting_ntuplizer/wiki/Cross-sections
+    # #
+    # # Signals
+    # #
     # 34.55
     # 34.55
     # 34.55
@@ -147,26 +146,26 @@ cross_sections=(
     # 0.0412
     # 0.0412
 
-    #
-    # Backgrounds
-    #
-    # QCD
-    # 323400
-    # 30140
-    # 6310
-    # 1094
-    # 99.38
-    # 20.20
+    # #
+    # # Backgrounds
+    # #
+    # # QCD
+    #6310
+    #1094
+    99.38
+    20.20
+    323400
+    30140
 
     # TTJets
-    # 471.7
+    471.7
 
-    # WJets
+    # # WJets
     # 52940
     # 52940
     # 52940
     # 52940
-    52940
+    # 52940
 )
 
 

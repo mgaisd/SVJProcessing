@@ -16,9 +16,9 @@ output_directory=root://cmsdcache-kit-disk.gridka.de:1094//store/user/mgaisdor/s
 
 
 dataset_names=(
-    #
-    # Signals
-    #
+    # #
+    # # Signals
+    # #
     # s-channel_mMed-700_mDark-20_rinv-0.3
     # s-channel_mMed-700_mDark-20_rinv-0.5
     # s-channel_mMed-700_mDark-20_rinv-0.7
@@ -70,15 +70,15 @@ dataset_names=(
     QCD_HT1500to2000
     QCD_HT2000toInf
 
-    TTJets
+    # #TTJets
     TTJets_2430000
 
-    WJets
-    WJets_inclusive_260000
-    WJets_inclusive_270000
-    WJets_inclusive_280000
-    WJets_inclusive_40000
-    WJets_inclusive_50000
+#     #WJets
+#     WJets_inclusive_260000
+#     WJets_inclusive_270000
+#     WJets_inclusive_280000
+#     WJets_inclusive_40000
+#     WJets_inclusive_50000
 )
 
 check_number_of_events() {

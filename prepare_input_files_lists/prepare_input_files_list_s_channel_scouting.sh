@@ -18,9 +18,9 @@ selection_name=s_channel_scouting_pre_selection
 year=2018
 
 dataset_names=(
-    #
-    # Signals
-    #
+    # #
+    # # Signals
+    # #
     # s-channel_mMed-700_mDark-20_rinv-0.3
     # s-channel_mMed-700_mDark-20_rinv-0.5
     # s-channel_mMed-700_mDark-20_rinv-0.7
@@ -77,18 +77,18 @@ dataset_names=(
 
 
     #
-    # TTJets
+    #TTJets
     #
     TTJets_2430000
 
-    #
-    # WJets
-    #
-    WJets_inclusive_260000
-    WJets_inclusive_270000
-    WJets_inclusive_280000
-    WJets_inclusive_40000
-    WJets_inclusive_50000
+    # #
+    # #WJets
+    # #
+    # WJets_inclusive_260000
+    # WJets_inclusive_270000
+    # WJets_inclusive_280000
+    # WJets_inclusive_40000
+    # WJets_inclusive_50000
 )
 
 prepare_input_files_list() {
@@ -103,9 +103,9 @@ prepare_input_files_list() {
     echo ""
     echo "Preparing input files for dataset ${dataset_name} year ${year} and selection ${selection_name}"
 
-    python list_dataset_files.py -d ${dataset_name} -y ${year} -c ${dataset_config} -o ${dataset_directory} -nano_scout
-    python compute_unweighted_selection_efficiency.py -d ${dataset_name} -y ${year} -p ${module} -s ${selection_name} -i ${dataset_directory} -o ${dataset_directory} -n 30 -e futures -c 10000 -nano_scout  -precision 15
-    python prepare_input_files_list.py -d ${dataset_name} -y ${year} -s ${selection_name} -i ${dataset_directory} -o ${dataset_directory} -m 50000
+    #python list_dataset_files.py -d ${dataset_name} -y ${year} -c ${dataset_config} -o ${dataset_directory} -nano_scout
+    #python compute_unweighted_selection_efficiency.py -d ${dataset_name} -y ${year} -p ${module} -s ${selection_name} -i ${dataset_directory} -o ${dataset_directory} -n 30 -e futures -c 1000 -nano_scout  -precision 15
+    python prepare_input_files_list.py -d ${dataset_name} -y ${year} -s ${selection_name} -i ${dataset_directory} -o ${dataset_directory} -m 500 #50000
 }
 
 

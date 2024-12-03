@@ -17,14 +17,9 @@ def process(events, cut_flow, year, primary_dataset="", pn_tagger=False, **kwarg
     skimmer_utils.update_cut_flow(cut_flow, "Trigger", events)
 
     # Good jet filters
-    #print("--------------------")
-    #print("number of events after applying the trigger cut",len(events))
-    #print("number of jets in the file",ak.count(events.FatJet_pt))
-    #print("--------------------")
     if ak.count(events.FatJet_pt) != 0:
         events = sequences.apply_good_ak8_jet_filter(events)
     skimmer_utils.update_cut_flow(cut_flow, "GoodJetsAK8", events)
-
 
     # Removing events with no jets to avoid crashes
     filter_njets = ak.count(events.FatJet_pt, axis=1) > 0
@@ -33,13 +28,15 @@ def process(events, cut_flow, year, primary_dataset="", pn_tagger=False, **kwarg
     # Adding JetsAK8_isGood branch already so that it can be used
     # in the rest of the pre-selection
     if len(events) != 0:
-        events = sequences.add_good_ak8_jet_branch(events)
+        events = sequences.add_good_ak8_jet_branch(events)    
 
     # Requiring at least 2 good FatJets
     if len(events) != 0:
         filter = ak.count(events.FatJet_pt[events.FatJet_isGood], axis=1) >= 2
         events = events[filter]
     skimmer_utils.update_cut_flow(cut_flow, "nJetsAK8Gt2", events)
+
+
 
     #apply RT filter (RT = MET over MT)
     if len(events) != 0:
@@ -62,20 +59,20 @@ def process(events, cut_flow, year, primary_dataset="", pn_tagger=False, **kwarg
     skimmer_utils.update_cut_flow(cut_flow, "RT selection", events)
 
 
-    #apply DeltaEta filter
-    if len(events) != 0:
-        jets = skimmer_utils.make_pt_eta_phi_mass_lorentz_vector(
-            pt=events.FatJet_pt[events.FatJet_isGood],
-            eta=events.FatJet_eta[events.FatJet_isGood],
-            phi=events.FatJet_phi[events.FatJet_isGood],
-            mass=events.FatJet_mass[events.FatJet_isGood],
-        )
-        delta_eta = abs(event_vars.calculate_delta_eta(jets))
-        filter_deltaeta = delta_eta < 1.5
-        filter_deltaeta = as_type(filter_deltaeta, bool)
-        events = events[filter_deltaeta]
+    #apply DeltaEta filter (not applied because it is used as a control region)
+    # if len(events) != 0:
+    #     jets = skimmer_utils.make_pt_eta_phi_mass_lorentz_vector(
+    #         pt=events.FatJet_pt[events.FatJet_isGood],
+    #         eta=events.FatJet_eta[events.FatJet_isGood],
+    #         phi=events.FatJet_phi[events.FatJet_isGood],
+    #         mass=events.FatJet_mass[events.FatJet_isGood],
+    #     )
+    #     delta_eta = abs(event_vars.calculate_delta_eta(jets))
+    #     filter_deltaeta = delta_eta < 1.5
+    #     filter_deltaeta = as_type(filter_deltaeta, bool)
+    #     events = events[filter_deltaeta]
     
-    skimmer_utils.update_cut_flow(cut_flow, "DeltaEtaj0j1 selection", events)
+    # skimmer_utils.update_cut_flow(cut_flow, "DeltaEtaj0j1 selection", events)
 
     #apply MT selection
     if len(events) != 0:
