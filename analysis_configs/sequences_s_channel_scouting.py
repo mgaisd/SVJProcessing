@@ -130,8 +130,8 @@ def add_analysis_branches(events):
         mass=events.FatJet_mass[events.FatJet_isGood],
     )
     met = skimmer_utils.make_pt_eta_phi_mass_lorentz_vector(
-            pt=events.MET_pt,
-            phi=events.MET_phi,
+            pt=events.ScoutMET_pt,
+            phi=events.ScoutMET_phi,
     )
 
     #add rt variable
@@ -174,26 +174,14 @@ def add_dark_quark_matching(events):
         mass=events.MatrixElementGenParticle_mass,
     )
 
-    # matching with the first dark quark
+    # delta R matching between jets and dark quarks
     dR1 = jets.delta_r(dark_quarks[:,0]) <= 0.8
-    dR1 = ak.values_astype(dR1, int)
-    matched_index1 = ak.argmax(dR1, axis=1)
-    matched_index1 = ak.where(ak.any(dR1, axis=1), matched_index1, -1)
-
-    #matching with the second dark quark 
     dR2 = jets.delta_r(dark_quarks[:,1]) <= 0.8
-    dR2 = ak.values_astype(dR2, int)
-    matched_index2 = ak.argmax(dR2, axis=1)
-    matched_index2 = ak.where(ak.any(dR2, axis=1), matched_index2, -1)
+    matched_mask = dR1 | dR2
 
-    #create a combined list of matched indices
-    matched_indices = ak.concatenate([matched_index1[:, None], matched_index2[:, None]], axis=1)
-    matched_indices = ak.sort(matched_indices, axis=1)
-    matched_indices = matched_indices[matched_indices >= 0]
-
-    #add new branch to the events 
-    events["FatJetDarkQuarkJetIdx"] = matched_indices
-
+    #add new branch to the event tree
+    events["FatJet_DarkQuarkMatched"] = ak.values_astype(matched_mask, "uint32")
+    
     return events
 
 

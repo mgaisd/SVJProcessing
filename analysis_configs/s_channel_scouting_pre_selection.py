@@ -47,11 +47,11 @@ def process(events, cut_flow, year, primary_dataset="", pn_tagger=False, **kwarg
             mass=events.FatJet_mass[events.FatJet_isGood],
         )
         met = skimmer_utils.make_pt_eta_phi_mass_lorentz_vector(
-            pt=events.MET_pt,
-            phi=events.MET_phi,
+            pt=events.ScoutMET_pt,
+            phi=events.ScoutMET_phi,
         )
         mt = event_vars.calculate_transverse_mass(jets, met)
-        rt = events.MET_pt / mt
+        rt = events.ScoutMET_pt / mt
         filter_rt = rt > 0.15
         filter_rt = as_type(filter_rt, bool)   #not needed
         events = events[filter_rt]
@@ -83,8 +83,8 @@ def process(events, cut_flow, year, primary_dataset="", pn_tagger=False, **kwarg
             mass=events.FatJet_mass[events.FatJet_isGood],
         )
         met = skimmer_utils.make_pt_eta_phi_mass_lorentz_vector(
-            pt=events.MET_pt,
-            phi=events.MET_phi,
+            pt=events.ScoutMET_pt,
+            phi=events.ScoutMET_phi,
         )
         mt = event_vars.calculate_transverse_mass(jets, met)
         filter_mt = mt > 650
@@ -104,8 +104,8 @@ def process(events, cut_flow, year, primary_dataset="", pn_tagger=False, **kwarg
     if len(events) != 0:
         # If needed because the selection crashes due to the special ak type
         met = skimmer_utils.make_pt_eta_phi_mass_lorentz_vector(
-            pt=events.MET_pt,
-            phi=events.MET_phi,
+            pt=events.ScoutMET_pt,
+            phi=events.ScoutMET_phi,
         )
         jets = skimmer_utils.make_pt_eta_phi_mass_lorentz_vector(
             pt=events.FatJet_pt[events.FatJet_isGood],
