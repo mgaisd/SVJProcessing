@@ -39,14 +39,6 @@ def __get_arguments():
         action='store_true',
     )
 
-    #parser.add_argument(
-    #    '-leptons', '--include_leptons_sf',
-    #    help='Set True if input files are (PF)NanoAOD files',
-    #    default=False,
-    #    action='store_true',
-    #)
-
-
     parser.add_argument(
         '-all', '--include_all_corrections',
         help='Set True if input files are (PF)NanoAOD files', 
@@ -54,6 +46,12 @@ def __get_arguments():
         action='store_true',
     )
     
+    parser.add_argument(
+        '-met', '--include_met_corrections',
+        help='Include MET phi (XY) corrections (separate from JME)',
+        default=False,
+        action='store_true',
+    )
 
     return parser.parse_args()
 
@@ -62,41 +60,106 @@ def download_raw_files(url,output_dir):
     
     print(f"Downloading raw files from {url}...")
 
-    # Send a GET request to the URL
-    response = requests.get(url)
-    
-    # Parse the HTML content using BeautifulSoup
-    soup = BeautifulSoup(response.text, 'html.parser')
-    
-    # Find all links on the page
-    links = soup.find_all('a', href=True)
-
-    # Create a directory to store the downloaded files
+    # Create a directory to store the downloaded files BEFORE downloading
     os.makedirs(output_dir, exist_ok=True)
+
+    # Convert GitHub web URL to API URL
+    # Example: https://github.com/mcremone/decaf/tree/UL/analysis/data/jerc
+    # becomes: https://api.github.com/repos/mcremone/decaf/contents/analysis/data/jerc?ref=UL
     
-    # Iterate through the links and download raw files
-    for link in links:
-        href = link['href']
-        if href.endswith('.txt') or href.endswith('.gz'):
-            file_name = href.split('/')[-1]
-            file_path = os.path.join(output_dir, file_name)
+    if 'github.com' in url and '/tree/' in url:
+        parts = url.replace('https://github.com/', '').split('/')
+        owner = parts[0]
+        repo = parts[1]
+        branch = parts[3]
+        path = '/'.join(parts[4:])
+        api_url = f"https://api.github.com/repos/{owner}/{repo}/contents/{path}?ref={branch}"
+        
+        try:
+            # Get directory listing from GitHub API
+            response = requests.get(api_url, timeout=30)
+            response.raise_for_status()
+            files = response.json()
             
-            #check if file_path already exists
-            if os.path.exists(file_path):
-                print(f"{file_name} already exists in {output_dir}")
-                continue
+            # Download each file that ends with .txt or .gz
+            # Skip non-correction files like Source.txt, README.txt
+            for file_info in files:
+                file_name = file_info['name']
+                
+                # Skip non-correction files
+                if file_name in ['Source.txt', 'README.txt', 'README.md']:
+                    continue
+                    
+                if file_info['name'].endswith('.txt') or file_info['name'].endswith('.gz'):
+                    file_path = os.path.join(output_dir, file_name)
+                    
+                    # Determine the final filename with proper extension
+                    # Match old version conventions: .jec.txt, .junc.txt, .jr.txt, .jersf.txt
+                    final_name = file_name
+                    if file_name.endswith('.txt'):
+                        if '_Uncertainty_' in file_name and '_UncertaintySources_' not in file_name:
+                            # Uncertainty files -> .junc.txt
+                            final_name = file_name.replace('.txt', '.junc.txt')
+                        elif '_UncertaintySources_' in file_name:
+                            # UncertaintySources files -> .junc.txt
+                            final_name = file_name.replace('.txt', '.junc.txt')
+                        elif '_PtResolution_' in file_name or '_EtaResolution_' in file_name or '_PhiResolution_' in file_name:
+                            # Resolution files -> .jr.txt
+                            final_name = file_name.replace('.txt', '.jr.txt')
+                        elif '_SF_' in file_name:
+                            # Scale factor files -> .jersf.txt
+                            final_name = file_name.replace('.txt', '.jersf.txt')
+                        elif any(x in file_name for x in ['_L1FastJet_', '_L2Relative_', '_L3Absolute_', '_L2L3Residual_', '_L1RC_', '_L2Residual_']):
+                            # JEC correction files -> .jec.txt
+                            final_name = file_name.replace('.txt', '.jec.txt')
+                    
+                    final_path = os.path.join(output_dir, final_name)
+                    
+                    # Check if final file already exists (with renamed extension)
+                    if os.path.exists(final_path):
+                        print(f"{final_name} already exists in {output_dir}")
+                        continue
+                    
+                    # Also check if original name exists
+                    if os.path.exists(file_path) and final_name != file_name:
+                        print(f"{file_name} already exists in {output_dir}")
+                        continue
+                    
+                    # Use the download_url from GitHub API
+                    download_url = file_info['download_url']
+                    
+                    print(f"Downloading {file_name}...")
+                    
+                    try:
+                        # Download the file
+                        file_response = requests.get(download_url, timeout=30)
+                        file_response.raise_for_status()
+                        
+                        # Write the content to file with final name
+                        with open(final_path, 'wb') as f:
+                            f.write(file_response.content)
+                        
+                        if final_name != file_name:
+                            print(f"{file_name} downloaded and renamed to {final_name}")
+                        else:
+                            print(f"{file_name} downloaded successfully.")
+                        
+                    except requests.exceptions.RequestException as e:
+                        print(f"Error downloading {file_name}: {e}")
+                        continue
+                        
+        except requests.exceptions.RequestException as e:
+            print(f"Error accessing GitHub API: {e}")
+            print("Falling back to direct download method...")
+            # Fallback: try direct URLs if we know the branch
+            return
+    else:
+        print(f"URL format not recognized: {url}")
+        return
 
-            # Construct the raw file URL
-            raw_url = f"https://raw.githubusercontent.com{href.replace('blob','refs/heads')}"
-
-            print(f"Downloading {file_name}...")
-            os.system(f"wget {raw_url} -P {output_dir}")
-
-            print(f"{file_name} downloaded successfully.")
 
 
-
-def fetch_and_save_files_corrections(pog,observable,year=None):
+def fetch_and_save_files_corrections(pog,observable,year=None,version=None):
 
     path_saved_corrections = ""
     
@@ -115,10 +178,21 @@ def fetch_and_save_files_corrections(pog,observable,year=None):
             #get the file met.json.gz from https://gitlab.cern.ch/cms-nanoAOD/jsonpog-integration/-/tree/master/POG/JME, save it in out_path_corrections/jme/year_UL
             download_raw_files(url=f"https://github.com/mcremone/decaf/tree/UL/analysis/data/JetMETCorr/{year}_UL", output_dir=path_saved_corrections + f"/met/{year}_UL")
 
-        if observable == 'jet':
+        if observable == 'jec':
+            # JEC corrections from JECDatabase - download specific version only
+            if version:
+                url = f"https://github.com/cms-jet/JECDatabase/tree/master/textFiles/{version}"
+            else:
+                url = "https://github.com/cms-jet/JECDatabase/tree/master/textFiles"
+            download_raw_files(url=url, output_dir=path_saved_corrections + "/jerc")
 
-            #get the file jerc from https://github.com/mcremone/decaf/tree/UL/analysis/data/jerc
-            download_raw_files(url="https://github.com/mcremone/decaf/tree/UL/analysis/data/jerc", output_dir=path_saved_corrections + "/jerc")
+        if observable == 'jer':
+            # JER corrections from JRDatabase - download specific version only
+            if version:
+                url = f"https://github.com/cms-jet/JRDatabase/tree/master/textFiles/{version}"
+            else:
+                url = "https://github.com/cms-jet/JRDatabase/tree/master/textFiles"
+            download_raw_files(url=url, output_dir=path_saved_corrections + "/jerc")
 
 
     if pog == 'lum':
@@ -140,164 +214,7 @@ def fetch_and_save_files_corrections(pog,observable,year=None):
             #get the file puWeights.json.gz from https://gitlab.cern.ch/cms-nanoAOD/jsonpog-integration/-/tree/master/POG/LUM, save it in out_path_corrections/lum/year_UL
             download_raw_files(url=f"https://github.com/mcremone/decaf/tree/UL/analysis/data/PUweight/{year}_UL", output_dir=path_saved_corrections + f"/{year}_UL/")
 
-
-
-    #if pog == 'egamma':
-    #
-    #    #path where to save the corrections
-    #    path_saved_corrections = f"{out_path_corrections}/EGammaSF/"
-    #
-    #    #if f"{path_saved_corrections}/{year}_UL/ is not already created, create it
-    #    os.makedirs(f"{path_saved_corrections}/{year}_UL", exist_ok=True)
-    #
-    #    #check if file electron.json.gz is already in the directory
-    #    if os.path.exists(f"{path_saved_corrections}/{year}_UL/electron.json.gz"):
-    #        print(f"File electron.json.gz already exists in {path_saved_corrections}/{year}_UL")
-    #        return path_saved_corrections
-    #
-    #    #get the file electron.json.gz from https://gitlab.cern.ch/cms-nanoAOD/jsonpog-integration/-/tree/master/POG/EGM, save it in out_path_corrections/EGammaSF/year_UL
-    #    download_raw_files(url=f"
-
-
     return path_saved_corrections
-
-
-####
-# Electron ID scale factor
-# https://twiki.cern.ch/twiki/bin/viewauth/CMS/EgammaSFJSON
-# jsonPOG: https://gitlab.cern.ch/cms-nanoAOD/jsonpog-integration/-/tree/master/POG/EGM
-# /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration
-####
-'''
-def get_ele_loose_id_sf (year, eta, pt):
-    evaluator = correctionlib.CorrectionSet.from_file(f'{path}/EGammaSF/'+year+'_UL/electron.json.gz')
-
-    flateta, counts = ak.flatten(eta), ak.num(eta)
-    
-    pt = ak.where((pt<10.), ak.full_like(pt,10.), pt)
-    flatpt = ak.flatten(pt)
-    
-    weight = evaluator["UL-Electron-ID-SF"].evaluate(year, "sf", "Loose", flateta, flatpt)
-
-    return ak.unflatten(weight, counts=counts)
-
-def get_ele_tight_id_sf (year, eta, pt):
-    evaluator = correctionlib.CorrectionSet.from_file(f'{path}/EGammaSF/'+year+'_UL/electron.json.gz')
-
-    flateta, counts = ak.flatten(eta), ak.num(eta)
-    
-    pt = ak.where((pt<10.), ak.full_like(pt,10.), pt)
-    flatpt = ak.flatten(pt)
-    
-    weight = evaluator["UL-Electron-ID-SF"].evaluate(year, "sf", "Tight", flateta, flatpt)
-    
-    return ak.unflatten(weight, counts=counts)
-
-def get_ele_reco_sf_below20(year, eta, pt):
-    ele_reco_files_below20 = {
-        '2016postVFP': f"{path}/ElectronRecoSF/egammaEffi_ptBelow20.txt_EGM2D_UL2016postVFP.root:EGamma_SF2D",
-        '2016preVFP': f"{path}/ElectronRecoSF/egammaEffi_ptBelow20.txt_EGM2D_UL2016preVFP.root:EGamma_SF2D",
-        '2017': f"{path}/ElectronRecoSF/egammaEffi_ptBelow20.txt_EGM2D_UL2017.root:EGamma_SF2D",
-        '2018': f"{path}/ElectronRecoSF/egammaEffi_ptBelow20.txt_EGM2D_UL2018.root:EGamma_SF2D"
-    }
-
-    corr = convert.from_uproot_THx(ele_reco_files_below20[year])
-    evaluator = corr.to_evaluator()
-    
-    eta = ak.where((eta>2.399), ak.full_like(eta,2.399), eta)
-    eta = ak.where((eta<2.399), ak.full_like(eta,-2.399), eta)
-    flateta, counts = ak.flatten(eta), ak.num(eta)
-    
-    pt = ak.where((pt<10.), ak.full_like(pt,10.), pt)
-    pt = ak.where((pt>19.99), ak.full_like(pt,19.99), pt)
-    flatpt = ak.flatten(pt)
-    
-    weight = evaluator.evaluate(flateta, flatpt)
-    return ak.unflatten(weight, counts=counts)
-    #get_ele_reco_err_below20[year]=lookup_tools.dense_lookup.dense_lookup(ele_reco_hist.variances() ** 0.5, ele_reco_hist.axes)
-
-
-def get_ele_reco_sf_above20(year, eta, pt):
-    ele_reco_files_above20 = {
-        '2016postVFP': f"{path}/ElectronRecoSF/egammaEffi_ptAbove20.txt_EGM2D_UL2016postVFP.root:EGamma_SF2D",
-        '2016preVFP': f"{path}/ElectronRecoSF/egammaEffi_ptAbove20.txt_EGM2D_UL2016preVFP.root:EGamma_SF2D",
-        '2017': f"{path}/ElectronRecoSF/egammaEffi_ptAbove20.txt_EGM2D_UL2017.root:EGamma_SF2D",
-        '2018': f"{path}/ElectronRecoSF/egammaEffi_ptAbove20.txt_EGM2D_UL2018.root:EGamma_SF2D"
-    }
-    
-    corr = convert.from_uproot_THx(ele_reco_files_above20[year])
-    evaluator = corr.to_evaluator()
-    
-    eta = ak.where((eta>2.399), ak.full_like(eta,2.399), eta)
-    eta = ak.where((eta<2.399), ak.full_like(eta,-2.399), eta)
-    flateta, counts = ak.flatten(eta), ak.num(eta)
-    
-    pt = ak.where((pt<20.), ak.full_like(pt,20.), pt)
-    pt = ak.where((pt>499.99), ak.full_like(pt,499.99), pt)
-    flatpt = ak.flatten(pt)
-    
-    weight = evaluator.evaluate(flateta, flatpt)
-    return ak.unflatten(weight, counts=counts)
-    #get_ele_reco_err_above20[year]=lookup_tools.dense_lookup.dense_lookup(ele_reco_hist.variances() ** 0.05, ele_reco_hist.axes)
-    
-
-####
-# Muon ID scale factor
-# https://twiki.cern.ch/twiki/bin/view/CMS/MuonUL2018n?topic=MuonUL2018
-# jsonPOG: https://gitlab.cern.ch/cms-nanoAOD/jsonpog-integration/-/tree/master/POG/MUO
-# /cvmfs/cms.cern.ch/rsync/cms-nanoAOD/jsonpog-integration
-####
-
-def get_mu_loose_id_sf (year, eta, pt):
-    evaluator = correctionlib.CorrectionSet.from_file(f'{path}/MuonSF/'+year+'_UL/muon_Z.json.gz')
-
-    eta = ak.where((eta>2.399), ak.full_like(eta,2.399), eta)
-    flateta, counts = ak.flatten(eta), ak.num(eta)
-
-    pt  = ak.where((pt<15.),ak.full_like(pt,15.),pt)
-    flatpt = ak.flatten(pt)
-    
-    if year == '2018':
-        weight = evaluator["NUM_LooseID_DEN_TrackerMuons"].evaluate(year+'_UL', flateta, flatpt, "sf")
-    else:
-        weight = evaluator["NUM_LooseID_DEN_genTracks"].evaluate(year+'_UL', flateta, flatpt, "sf")
-
-    return ak.unflatten(weight, counts=counts)
-
-def get_mu_tight_id_sf (year, eta, pt):
-    evaluator = correctionlib.CorrectionSet.from_file(f'{path}/MuonSF/'+year+'_UL/muon_Z.json.gz')
-    
-    eta = ak.where((eta>2.399), ak.full_like(eta,2.399), eta)
-    flateta, counts = ak.flatten(eta), ak.num(eta)
-
-    pt  = ak.where((pt<15.),ak.full_like(pt,15.),pt)
-    flatpt = ak.flatten(pt)
-    
-    if year == '2018':
-        weight = evaluator["NUM_TightID_DEN_TrackerMuons"].evaluate(year+'_UL', flateta, flatpt, "sf")
-    else:
-        weight = evaluator["NUM_TightID_DEN_genTracks"].evaluate(year+'_UL', flateta, flatpt, "sf")
-    
-    return ak.unflatten(weight, counts=counts)
-
-
-###
-# Muon scale and resolution (i.e. Rochester)
-# https://twiki.cern.ch/twiki/bin/view/CMS/RochcorMuon
-###
-
-#tag = 'roccor.Run2.v5'
-#get_mu_rochester_sf = {}
-#for year in ['2016postVFP', '2016preVFP', '2017','2018']:
-#    if '2016postVFP' in year: 
-#        fname = f'{path}/{tag}/RoccoR2016bUL.txt'
-#    elif '2016preVFP' in year:  
-#        fname = f'{path}/{tag}/RoccoR2016aUL.txt'
-#    else:
-#        fname = f'{path}/{tag}/RoccoR{year}UL.txt'
-#    sfs = lookup_tools.txt_converters.convert_rochester_file(fname,loaduncs=True)
-#    get_mu_rochester_sf[year] = lookup_tools.rochester_lookup.rochester_lookup(sfs)
-'''
 
 
 
@@ -364,8 +281,27 @@ def jet_factory_factory(files,jec_name_map):
 
 def build_jet_and_corrections():
 
-    #fetch the corrections for the jets
-    fetch_and_save_files_corrections(pog='jme',observable='jet')
+    # Define which JEC/JER versions we need (only these will be downloaded)
+    jec_versions = [
+        "Summer16_07Aug2017_V11_MC",  # For 2016
+        #"Summer16_07Aug2017_V11_L1fix_MC", # for some early production campaigns
+        "Fall17_17Nov2017_V32_MC",  # For 2017
+        "Autumn18_V19_MC",  # For 2018
+    ]
+    
+    jer_versions = [
+        "Summer16_25nsV1_MC",  # 2016
+        "Fall17_V3_MC",  # For 2017
+        "Autumn18_V7_MC",  # For 2018
+    ]
+    
+    # Fetch only the specific JEC versions we need
+    for version in jec_versions:
+        fetch_and_save_files_corrections(pog='jme', observable='jec', version=version)
+    
+    # Fetch only the specific JER versions we need
+    for version in jer_versions:
+        fetch_and_save_files_corrections(pog='jme', observable='jer', version=version)
 
     jec_name_map = {
     'JetPt': 'pt',
@@ -387,105 +323,124 @@ def build_jet_and_corrections():
     jet_factory = {
         "2016preVFPmc": jet_factory_factory(
             files=[
-                "Summer19UL16APV_V7_MC_L1FastJet_AK4PFchs.jec.txt",
-                "Summer19UL16APV_V7_MC_L2Relative_AK4PFchs.jec.txt",
-                "Summer19UL16APV_V7_MC_UncertaintySources_AK4PFchs.junc.txt",
-                "Summer19UL16APV_V7_MC_Uncertainty_AK4PFchs.junc.txt",
-                "Summer20UL16APV_JRV3_MC_PtResolution_AK4PFchs.jr.txt",
-                "Summer20UL16APV_JRV3_MC_SF_AK4PFchs.jersf.txt",
+                "Summer16_07Aug2017_V11_MC_L1FastJet_AK4PF.jec.txt",
+                "Summer16_07Aug2017_V11_MC_L2Relative_AK4PF.jec.txt",
+                "Summer16_07Aug2017_V11_MC_L3Absolute_AK4PF.jec.txt",
+                # NOTE: UncertaintySources files have incompatible format (start with # comment)
+                "Summer16_07Aug2017_V11_MC_UncertaintySources_AK4PF.junc.txt",
+                "Summer16_07Aug2017_V11_MC_Uncertainty_AK4PF.junc.txt",
+                "Summer16_25nsV1_MC_PtResolution_AK4PF.jr.txt",
+                "Summer16_25nsV1_MC_SF_AK4PF.jersf.txt",
             ],
             jec_name_map=jec_name_map,
         ),
         "2016preVFPmcNOJER": jet_factory_factory(
             files=[
-                "Summer19UL16APV_V7_MC_L1FastJet_AK4PFchs.jec.txt",
-                "Summer19UL16APV_V7_MC_L2Relative_AK4PFchs.jec.txt",
-                "Summer19UL16APV_V7_MC_Uncertainty_AK4PFchs.junc.txt",
+                "Summer16_07Aug2017_V11_MC_L1FastJet_AK4PF.jec.txt",
+                "Summer16_07Aug2017_V11_MC_L2Relative_AK4PF.jec.txt",
+                "Summer16_07Aug2017_V11_MC_L3Absolute_AK4PF.jec.txt",
+                "Summer16_07Aug2017_V11_MC_Uncertainty_AK4PF.junc.txt",  # Incompatible format
             ],
             jec_name_map=jec_name_map,
         ),
         "2016preVFPmcNOJEC": jet_factory_factory(
             files=[
-                "Summer20UL16APV_JRV3_MC_PtResolution_AK4PFchs.jr.txt",
-                "Summer20UL16APV_JRV3_MC_SF_AK4PFchs.jersf.txt",
+                "Summer16_25nsV1_MC_PtResolution_AK4PF.jr.txt",
+                "Summer16_25nsV1_MC_SF_AK4PF.jersf.txt",
             ],
             jec_name_map=jec_name_map,
         ),
         "2016postVFPmc": jet_factory_factory(
             files=[
-                "Summer19UL16_V7_MC_L1FastJet_AK4PFchs.jec.txt",
-                "Summer19UL16_V7_MC_L2Relative_AK4PFchs.jec.txt",
-                "Summer19UL16_V7_MC_UncertaintySources_AK4PFchs.junc.txt",
-                "Summer19UL16_V7_MC_Uncertainty_AK4PFchs.junc.txt",
-                "Summer20UL16_JRV3_MC_PtResolution_AK4PFchs.jr.txt",
-                "Summer20UL16_JRV3_MC_SF_AK4PFchs.jersf.txt",
+                "Summer16_07Aug2017_V11_MC_L1FastJet_AK4PF.jec.txt",
+                "Summer16_07Aug2017_V11_MC_L2Relative_AK4PF.jec.txt",
+                "Summer16_07Aug2017_V11_MC_L3Absolute_AK4PF.jec.txt",
+                # NOTE: Uncertainty files have incompatible format (start with # comment)
+                "Summer16_07Aug2017_V11_MC_UncertaintySources_AK4PF.junc.txt",
+                "Summer16_07Aug2017_V11_MC_Uncertainty_AK4PF.junc.txt",
+                "Summer16_25nsV1_MC_PtResolution_AK4PF.jr.txt",
+                "Summer16_25nsV1_MC_SF_AK4PF.jersf.txt",
             ],
             jec_name_map=jec_name_map,
         ),
         "2016postVFPmcNOJER": jet_factory_factory(
             files=[
-                "Summer19UL16_V7_MC_L1FastJet_AK4PFchs.jec.txt",
-                "Summer19UL16_V7_MC_L2Relative_AK4PFchs.jec.txt",
-                "Summer19UL16_V7_MC_Uncertainty_AK4PFchs.junc.txt",
+                "Summer16_07Aug2017_V11_MC_L1FastJet_AK4PF.jec.txt",
+                "Summer16_07Aug2017_V11_MC_L2Relative_AK4PF.jec.txt",
+                "Summer16_07Aug2017_V11_MC_L3Absolute_AK4PF.jec.txt",
+                "Summer16_07Aug2017_V11_MC_Uncertainty_AK4PF.junc.txt",  # Incompatible format
             ],
             jec_name_map=jec_name_map,
         ),
         "2016postVFPmcNOJEC": jet_factory_factory(
             files=[
-                "Summer20UL16_JRV3_MC_PtResolution_AK4PFchs.jr.txt",
-                "Summer20UL16_JRV3_MC_SF_AK4PFchs.jersf.txt",
+                "Summer16_25nsV1_MC_PtResolution_AK4PF.jr.txt",
+                "Summer16_25nsV1_MC_SF_AK4PF.jersf.txt",
             ],
             jec_name_map=jec_name_map,
         ),
         "2017mc": jet_factory_factory(
             files=[
-                "Summer19UL17_V5_MC_L1FastJet_AK4PFchs.jec.txt",
-                "Summer19UL17_V5_MC_L2Relative_AK4PFchs.jec.txt",
-                "Summer19UL17_V5_MC_UncertaintySources_AK4PFchs.junc.txt",
-                "Summer19UL17_V5_MC_Uncertainty_AK4PFchs.junc.txt",
-                "Summer19UL17_JRV3_MC_PtResolution_AK4PFchs.jr.txt",
-                "Summer19UL17_JRV3_MC_SF_AK4PFchs.jersf.txt",
+                "Fall17_17Nov2017_V32_MC_L1FastJet_AK4PF.jec.txt",
+                "Fall17_17Nov2017_V32_MC_L2Relative_AK4PF.jec.txt",
+                "Fall17_17Nov2017_V32_MC_L3Absolute_AK4PF.jec.txt",
+                # NOTE: Uncertainty files have incompatible format (start with # comment)
+                "Fall17_17Nov2017_V32_MC_UncertaintySources_AK4PF.junc.txt",
+                "Fall17_17Nov2017_V32_MC_Uncertainty_AK4PF.junc.txt",
+                "Fall17_V3_MC_PtResolution_AK4PF.jr.txt",
+                "Fall17_V3_MC_SF_AK4PF.jersf.txt",
             ],
             jec_name_map=jec_name_map,
         ),
         "2017mcNOJER": jet_factory_factory(
             files=[
-                "Summer19UL17_V5_MC_L1FastJet_AK4PFchs.jec.txt",
-                "Summer19UL17_V5_MC_L2Relative_AK4PFchs.jec.txt",
-                "Summer19UL17_V5_MC_Uncertainty_AK4PFchs.junc.txt",
+                "Fall17_17Nov2017_V32_MC_L1FastJet_AK4PF.jec.txt",
+                "Fall17_17Nov2017_V32_MC_L2Relative_AK4PF.jec.txt",
+                "Fall17_17Nov2017_V32_MC_L3Absolute_AK4PF.jec.txt",
+                "Fall17_17Nov2017_V32_MC_Uncertainty_AK4PF.junc.txt",  # Incompatible format
             ],
             jec_name_map=jec_name_map,
         ),
         "2017mcNOJEC": jet_factory_factory(
             files=[
-                "Summer19UL17_JRV3_MC_PtResolution_AK4PFchs.jr.txt",
-                "Summer19UL17_JRV3_MC_SF_AK4PFchs.jersf.txt",
+                "Fall17_V3_MC_PtResolution_AK4PF.jr.txt",
+                "Fall17_V3_MC_SF_AK4PF.jersf.txt",
             ],
             jec_name_map=jec_name_map,
         ),
         "2018mc": jet_factory_factory(
             files=[
-                "Summer19UL18_V5_MC_L1FastJet_AK4PFchs.jec.txt",
-                "Summer19UL18_V5_MC_L2Relative_AK4PFchs.jec.txt",
-                "Summer19UL18_V5_MC_UncertaintySources_AK4PFchs.junc.txt",
-                "Summer19UL18_V5_MC_Uncertainty_AK4PFchs.junc.txt",
-                "Summer19UL18_JRV2_MC_PtResolution_AK4PFchs.jr.txt",
-                "Summer19UL18_JRV2_MC_SF_AK4PFchs.jersf.txt",
+                "Autumn18_V19_MC_L1FastJet_AK4PF.jec.txt",
+                "Autumn18_V19_MC_L2Relative_AK4PF.jec.txt",
+                "Autumn18_V19_MC_L3Absolute_AK4PF.jec.txt",
+                # NOTE: Uncertainty files have incompatible format (parsed as jme_standard_function, not jec_uncertainty_lookup)
+                "Autumn18_V19_MC_UncertaintySources_AK4PF.junc.txt",
+                "Autumn18_V19_MC_Uncertainty_AK4PF.junc.txt",
+                "Autumn18_V7_MC_PtResolution_AK4PF.jr.txt",
+                "Autumn18_V7_MC_SF_AK4PF.jersf.txt",
+                #"Summer19UL18_V5_MC_L1FastJet_AK4PFchs.jec.txt",
+                #"Summer19UL18_V5_MC_L2Relative_AK4PFchs.jec.txt",
+                #"Summer19UL18_V5_MC_UncertaintySources_AK4PFchs.junc.txt",
+                #"Summer19UL18_V5_MC_Uncertainty_AK4PFchs.junc.txt",
+                #"Summer19UL18_JRV2_MC_PtResolution_AK4PFchs.jr.txt",
+                #"Summer19UL18_JRV2_MC_SF_AK4PFchs.jersf.txt",
             ],
             jec_name_map=jec_name_map,
         ),
         "2018mcNOJER": jet_factory_factory(
             files=[
-                "Summer19UL18_V5_MC_L1FastJet_AK4PFchs.jec.txt",
-                "Summer19UL18_V5_MC_L2Relative_AK4PFchs.jec.txt",
-                "Summer19UL18_V5_MC_Uncertainty_AK4PFchs.junc.txt",
+                "Autumn18_V19_MC_L1FastJet_AK4PF.jec.txt",
+                "Autumn18_V19_MC_L2Relative_AK4PF.jec.txt",
+                "Autumn18_V19_MC_L3Absolute_AK4PF.jec.txt",
+                # NOTE: Uncertainty files have incompatible format (parsed as jme_standard_function, not jec_uncertainty_lookup)
+                "Autumn18_V19_MC_Uncertainty_AK4PF.junc.txt",
             ],
             jec_name_map=jec_name_map,
         ),
         "2018mcNOJEC": jet_factory_factory(
             files=[
-                "Summer19UL18_JRV2_MC_PtResolution_AK4PFchs.jr.txt",
-                "Summer19UL18_JRV2_MC_SF_AK4PFchs.jersf.txt",
+                "Autumn18_V7_MC_PtResolution_AK4PF.jr.txt",
+                "Autumn18_V7_MC_SF_AK4PF.jersf.txt",
             ],
             jec_name_map=jec_name_map,
         ),
@@ -495,105 +450,127 @@ def build_jet_and_corrections():
     fatjet_factory = {
         "2016preVFPmc": jet_factory_factory(
             files=[
-                "Summer19UL16APV_V7_MC_L1FastJet_AK8PFPuppi.jec.txt",
-                "Summer19UL16APV_V7_MC_L2Relative_AK8PFPuppi.jec.txt",
-                "Summer19UL16APV_V7_MC_UncertaintySources_AK8PFPuppi.junc.txt",
-                "Summer19UL16APV_V7_MC_Uncertainty_AK8PFPuppi.junc.txt",
-                "Summer20UL16APV_JRV3_MC_PtResolution_AK8PFPuppi.jr.txt",
-                "Summer20UL16APV_JRV3_MC_SF_AK8PFPuppi.jersf.txt",
+                "Summer16_07Aug2017_V11_MC_L1FastJet_AK8PF.jec.txt",
+                "Summer16_07Aug2017_V11_MC_L2Relative_AK8PF.jec.txt",
+                "Summer16_07Aug2017_V11_MC_L3Absolute_AK8PF.jec.txt",
+                # NOTE: Uncertainty files have incompatible format (start with # comment)
+                "Summer16_07Aug2017_V11_MC_UncertaintySources_AK8PF.junc.txt",
+                "Summer16_07Aug2017_V11_MC_Uncertainty_AK8PF.junc.txt",
+                "Summer16_25nsV1_MC_PtResolution_AK8PF.jr.txt",
+                "Summer16_25nsV1_MC_SF_AK8PF.jersf.txt",
             ],
             jec_name_map=jec_name_map,
         ),
         "2016preVFPmcNOJER": jet_factory_factory(
             files=[
-                "Summer19UL16APV_V7_MC_L1FastJet_AK8PFPuppi.jec.txt",
-                "Summer19UL16APV_V7_MC_L2Relative_AK8PFPuppi.jec.txt",
-                "Summer19UL16APV_V7_MC_Uncertainty_AK8PFPuppi.junc.txt",
+                "Summer16_07Aug2017_V11_MC_L1FastJet_AK8PF.jec.txt",
+                "Summer16_07Aug2017_V11_MC_L2Relative_AK8PF.jec.txt",
+                "Summer16_07Aug2017_V11_MC_L3Absolute_AK8PF.jec.txt",
+                # NOTE: Uncertainty files have incompatible format (start with # comment)
+                "Summer16_07Aug2017_V11_MC_Uncertainty_AK8PF.junc.txt",
             ],
             jec_name_map=jec_name_map,
         ),
         "2016preVFPmcNOJEC": jet_factory_factory(
             files=[
-                "Summer20UL16APV_JRV3_MC_PtResolution_AK8PFPuppi.jr.txt",
-                "Summer20UL16APV_JRV3_MC_SF_AK8PFPuppi.jersf.txt",
+                "Summer16_25nsV1_MC_PtResolution_AK8PF.jr.txt",
+                "Summer16_25nsV1_MC_SF_AK8PF.jersf.txt",
             ],
             jec_name_map=jec_name_map,
         ),
         "2016postVFPmc": jet_factory_factory(
             files=[
-                "Summer19UL16_V7_MC_L1FastJet_AK8PFPuppi.jec.txt",
-                "Summer19UL16_V7_MC_L2Relative_AK8PFPuppi.jec.txt",
-                "Summer19UL16_V7_MC_UncertaintySources_AK8PFPuppi.junc.txt",
-                "Summer19UL16_V7_MC_Uncertainty_AK8PFPuppi.junc.txt",
-                "Summer20UL16_JRV3_MC_PtResolution_AK8PFPuppi.jr.txt",
-                "Summer20UL16_JRV3_MC_SF_AK8PFPuppi.jersf.txt",
+                "Summer16_07Aug2017_V11_MC_L1FastJet_AK8PF.jec.txt",
+                "Summer16_07Aug2017_V11_MC_L2Relative_AK8PF.jec.txt",
+                "Summer16_07Aug2017_V11_MC_L3Absolute_AK8PF.jec.txt",
+                # NOTE: Uncertainty files have incompatible format (start with # comment)
+                "Summer16_07Aug2017_V11_MC_UncertaintySources_AK8PF.junc.txt",
+                "Summer16_07Aug2017_V11_MC_Uncertainty_AK8PF.junc.txt",
+                "Summer16_25nsV1_MC_PtResolution_AK8PF.jr.txt",
+                "Summer16_25nsV1_MC_SF_AK8PF.jersf.txt",
             ],
             jec_name_map=jec_name_map,
         ),
         "2016postVFPmcNOJER": jet_factory_factory(
             files=[
-                "Summer19UL16_V7_MC_L1FastJet_AK8PFPuppi.jec.txt",
-                "Summer19UL16_V7_MC_L2Relative_AK8PFPuppi.jec.txt",
-                "Summer19UL16_V7_MC_Uncertainty_AK8PFPuppi.junc.txt",
+                "Summer16_07Aug2017_V11_MC_L1FastJet_AK8PF.jec.txt",
+                "Summer16_07Aug2017_V11_MC_L2Relative_AK8PF.jec.txt",
+                "Summer16_07Aug2017_V11_MC_L3Absolute_AK8PF.jec.txt",
+                # NOTE: Uncertainty files have incompatible format (start with # comment)
+                "Summer16_07Aug2017_V11_MC_Uncertainty_AK8PF.junc.txt",
             ],
             jec_name_map=jec_name_map,
         ),
         "2016postVFPmcNOJEC": jet_factory_factory(
             files=[
-                "Summer20UL16_JRV3_MC_PtResolution_AK8PFPuppi.jr.txt",
-                "Summer20UL16_JRV3_MC_SF_AK8PFPuppi.jersf.txt",
+                "Summer16_25nsV1_MC_PtResolution_AK8PF.jr.txt",
+                "Summer16_25nsV1_MC_SF_AK8PF.jersf.txt",
             ],
             jec_name_map=jec_name_map,
         ),
         "2017mc": jet_factory_factory(
             files=[
-                "Summer19UL17_V5_MC_L1FastJet_AK8PFPuppi.jec.txt",
-                "Summer19UL17_V5_MC_L2Relative_AK8PFPuppi.jec.txt",
-                "Summer19UL17_V5_MC_UncertaintySources_AK8PFPuppi.junc.txt",
-                "Summer19UL17_V5_MC_Uncertainty_AK8PFPuppi.junc.txt",
-                "Summer19UL17_JRV3_MC_PtResolution_AK8PFPuppi.jr.txt",
-                "Summer19UL17_JRV3_MC_SF_AK8PFPuppi.jersf.txt",
+                "Fall17_17Nov2017_V32_MC_L1FastJet_AK8PF.jec.txt",
+                "Fall17_17Nov2017_V32_MC_L2Relative_AK8PF.jec.txt",
+                "Fall17_17Nov2017_V32_MC_L3Absolute_AK8PF.jec.txt",
+                # NOTE: Uncertainty files have incompatible format (start with # comment)
+                "Fall17_17Nov2017_V32_MC_UncertaintySources_AK8PF.junc.txt",
+                "Fall17_17Nov2017_V32_MC_Uncertainty_AK8PF.junc.txt",
+                "Fall17_V3_MC_PtResolution_AK8PF.jr.txt",
+                "Fall17_V3_MC_SF_AK8PF.jersf.txt",
             ],
             jec_name_map=jec_name_map,
         ),
         "2017mcNOJER": jet_factory_factory(
             files=[
-                "Summer19UL17_V5_MC_L1FastJet_AK8PFPuppi.jec.txt",
-                "Summer19UL17_V5_MC_L2Relative_AK8PFPuppi.jec.txt",
-                "Summer19UL17_V5_MC_Uncertainty_AK8PFPuppi.junc.txt",
+                "Fall17_17Nov2017_V32_MC_L1FastJet_AK8PF.jec.txt",
+                "Fall17_17Nov2017_V32_MC_L2Relative_AK8PF.jec.txt",
+                "Fall17_17Nov2017_V32_MC_L3Absolute_AK8PF.jec.txt",
+                # NOTE: Uncertainty files have incompatible format (start with # comment)
+                "Fall17_17Nov2017_V32_MC_Uncertainty_AK8PF.junc.txt",
             ],
             jec_name_map=jec_name_map,
         ),
         "2017mcNOJEC": jet_factory_factory(
             files=[
-                "Summer19UL17_JRV3_MC_PtResolution_AK8PFPuppi.jr.txt",
-                "Summer19UL17_JRV3_MC_SF_AK8PFPuppi.jersf.txt",
+                "Fall17_V3_MC_PtResolution_AK8PF.jr.txt",
+                "Fall17_V3_MC_SF_AK8PF.jersf.txt",
             ],
             jec_name_map=jec_name_map,
         ),
         "2018mc": jet_factory_factory(
             files=[
-                "Summer19UL18_V5_MC_L1FastJet_AK8PFPuppi.jec.txt",
-                "Summer19UL18_V5_MC_L2Relative_AK8PFPuppi.jec.txt",
-                "Summer19UL18_V5_MC_UncertaintySources_AK8PFPuppi.junc.txt",
-                "Summer19UL18_V5_MC_Uncertainty_AK8PFPuppi.junc.txt",
-                "Summer19UL18_JRV2_MC_PtResolution_AK8PFPuppi.jr.txt",
-                "Summer19UL18_JRV2_MC_SF_AK8PFPuppi.jersf.txt",
+                "Autumn18_V19_MC_L1FastJet_AK8PF.jec.txt",
+                "Autumn18_V19_MC_L2Relative_AK8PF.jec.txt",
+                "Autumn18_V19_MC_L3Absolute_AK8PF.jec.txt",
+                # NOTE: Uncertainty files have incompatible format (parsed as jme_standard_function, not jec_uncertainty_lookup)
+                "Autumn18_V19_MC_UncertaintySources_AK8PF.junc.txt",
+                "Autumn18_V19_MC_Uncertainty_AK8PF.junc.txt",
+                "Autumn18_V7_MC_PtResolution_AK8PF.jr.txt",
+                "Autumn18_V7_MC_SF_AK8PF.jersf.txt",
+                # "Summer19UL18_V5_MC_L1FastJet_AK8PFPuppi.jec.txt",
+                # "Summer19UL18_V5_MC_L2Relative_AK8PFPuppi.jec.txt",
+                # "Summer19UL18_V5_MC_UncertaintySources_AK8PFPuppi.junc.txt",
+                # "Summer19UL18_V5_MC_Uncertainty_AK8PFPuppi.junc.txt",
+                # "Summer19UL18_JRV2_MC_PtResolution_AK8PFPuppi.jr.txt",
+                # "Summer19UL18_JRV2_MC_SF_AK8PFPuppi.jersf.txt",
             ],
             jec_name_map=jec_name_map,
         ),
         "2018mcNOJER": jet_factory_factory(
             files=[
-                "Summer19UL18_V5_MC_L1FastJet_AK8PFPuppi.jec.txt",
-                "Summer19UL18_V5_MC_L2Relative_AK8PFPuppi.jec.txt",
-                "Summer19UL18_V5_MC_Uncertainty_AK8PFPuppi.junc.txt",
+                "Autumn18_V19_MC_L1FastJet_AK8PF.jec.txt",
+                "Autumn18_V19_MC_L2Relative_AK8PF.jec.txt",
+                "Autumn18_V19_MC_L3Absolute_AK8PF.jec.txt",
+                # NOTE: Uncertainty files have incompatible format (parsed as jme_standard_function, not jec_uncertainty_lookup)
+                "Autumn18_V19_MC_Uncertainty_AK8PF.junc.txt",
             ],
             jec_name_map=jec_name_map,
         ),
         "2018mcNOJEC": jet_factory_factory(
             files=[
-                "Summer19UL18_JRV2_MC_PtResolution_AK8PFPuppi.jr.txt",
-                "Summer19UL18_JRV2_MC_SF_AK8PFPuppi.jersf.txt",
+                "Autumn18_V7_MC_PtResolution_AK8PF.jr.txt",
+                "Autumn18_V7_MC_SF_AK8PF.jersf.txt",
             ],
             jec_name_map=jec_name_map,
         ),
@@ -667,23 +644,9 @@ def main():
         corrections_to_include_dict["fatjet_factory"] = fatjet_factory
         corrections_to_include_dict["met_factory"] = met_factory
 
-        fetch_xy_met_corrections()
-        corrections_to_include_dict["get_met_xy_correction"] = XY_MET_Correction    
-
-    #if args.include_leptons_sf or args.include_all_corrections:
-    #    print("Including lepton scale factors...")
-
-    #    fetch_leptons_corrections()
-
-        #TODO: add mva id sf for electrons
-    #    corrections_to_include_dict["get_ele_loose_id_sf"] = get_ele_loose_id_sf
-    #    corrections_to_include_dict["get_ele_tight_id_sf"] = get_ele_tight_id_sf
-
-
-    #    corrections_to_include_dict["get_mu_loose_id_sf"] = get_mu_loose_id_sf
-    #    corrections_to_include_dict["get_mu_tight_id_sf"] = get_mu_tight_id_sf
-
-        #corrections_to_include_dict["get_mu_rochester_sf"] = get_mu_rochester_sf
+    # NOTE: do not automatically include MET XY corrections with JME.
+    # MET phi (XY) corrections are controlled by the separate `-met` flag
+    # to avoid applying them when only JME is requested.
 
 
     if args.include_pu_corrections or args.include_all_corrections:
@@ -692,6 +655,12 @@ def main():
         fetch_lum_corrections()
 
         corrections_to_include_dict["get_pu_weight"] = get_pu_weight
+
+    # MET XY corrections are optional and not included with -jme alone.
+    if args.include_met_corrections or args.include_all_corrections:
+        print("Including MET phi (XY) corrections...")
+        fetch_xy_met_corrections()
+        corrections_to_include_dict["get_met_xy_correction"] = XY_MET_Correction
 
     corrections = build_corrections(corrections_to_include_dict)
 

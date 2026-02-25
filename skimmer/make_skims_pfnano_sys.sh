@@ -8,7 +8,7 @@ CHUNK_SIZE=1000
 N_WORKERS=150
 #EXECUTOR=dask/lpccondor    # HTCondor at LPC
 EXECUTOR=futures         # run locally
-FORCE_RECREATE=0   # 1 to recreate output file if it exists, 0 else
+FORCE_RECREATE=1   # 1 to recreate output file if it exists, 0 else
 FIRST_FILE=0
 LAST_FILE=-1  # Use -1 to skim all input files
 

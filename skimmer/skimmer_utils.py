@@ -692,11 +692,10 @@ def apply_variation_pfnano(events, variation, year, run, pfnano_sys_file):
         variation = "nominal"
 
         
-    if variation in ["nominal","jec_up", "jec_down", "jer_up", "jer_down","SVJjec_up", "SVJjec_down"]:
-        jerc_cache = cachetools.Cache(np.inf)
+    if variation in ["nominal","jec_up", "jec_down", "jer_up", "jer_down","SVJjec_up", "SVJjec_down"] and pfnano_sys_file is not None:
+        jerc_cache = {}  # Use empty dict instead of cachetools to force fresh calculations
         #load the JEC/JER variations from the pfnano file
-        if pfnano_sys_file is not None:
-            jerc_variations = load(pfnano_sys_file)
+        jerc_variations = load(pfnano_sys_file)
         #CZZ: first compute the JEC variations for AK4 and AK8 jets
         for radius in [4, 8]:
             jet_coll = "Jet" if radius == 4 else "FatJet"
@@ -725,24 +724,27 @@ def apply_variation_pfnano(events, variation, year, run, pfnano_sys_file):
                         jerc_cache,
                         ) 
 
-                    met_ptcorr, met_phicorr = corrected_MET_updated_JECs
-                    events["MET_pt"] = met_ptcorr
-                    events["MET_phi"] = met_phicorr
+                    met_ptcorr, met_phicorr, met_pt_uncorr, met_phi_uncorr = corrected_MET_updated_JECs
+                    events["ScoutMET_pt"] = met_ptcorr
+                    events["ScoutMET_phi"] = met_phicorr
+                    # Save uncorrected MET values
+                    events["ScoutMET_pt_uncorr"] = met_pt_uncorr
+                    events["ScoutMET_phi_uncorr"] = met_phi_uncorr
 
                     #Here propagate the corrections to METSignificance
-                    met_sig_corr_nom = propagate_jecs_to_METSig_PFNano(events,
-                                                year,
-                                                run,
-                                                jet_coll,
-                                                jerc_variations,
-                                                jerc_cache,
-                                                )
+                    # met_sig_corr_nom = propagate_jecs_to_METSig_PFNano(events,
+                    #                             year,
+                    #                             run,
+                    #                             jet_coll,
+                    #                             jerc_variations,
+                    #                             jerc_cache,
+                    #                             )
                     
-                    events["MET_significance"] = met_sig_corr_nom
+                    #events["ScoutMET_significance"] = met_sig_corr_nom
 
 
                 #unpack corrected_JERC_jets
-                jerc_corr_pt, jerc_corr_eta, jerc_corr_phi, jerc_corr_mass = corrected_JERC_jets
+                jerc_corr_pt, jerc_corr_eta, jerc_corr_phi, jerc_corr_mass, jerc_pt_uncorr, jerc_mass_uncorr = corrected_JERC_jets
 
                 #adding the JERC varied jets to the events
                 jerc_permutation = ak.argsort(jerc_corr_pt, ascending=False)
@@ -750,13 +752,20 @@ def apply_variation_pfnano(events, variation, year, run, pfnano_sys_file):
                 jerc_corr_eta = jerc_corr_eta[jerc_permutation]
                 jerc_corr_phi = jerc_corr_phi[jerc_permutation]
                 jerc_corr_mass = jerc_corr_mass[jerc_permutation]
+                jerc_pt_uncorr = jerc_pt_uncorr[jerc_permutation]
+                jerc_mass_uncorr = jerc_mass_uncorr[jerc_permutation]
                 events[f"{jet_coll}_pt"] = jerc_corr_pt
                 events[f"{jet_coll}_eta"] = jerc_corr_eta
                 events[f"{jet_coll}_phi"] = jerc_corr_phi
                 events[f"{jet_coll}_mass"] = jerc_corr_mass
-                jerc_pf_cand_jet_idx = events[f"{jet_coll}PFCands_jetIdx"]
-                jerc_sorted_pf_cand_jet_idx = ak.Array([p[idx] for idx, p in zip(jerc_pf_cand_jet_idx, jerc_permutation)])
-                events[f"{jet_coll}PFCands_jetIdx"] = jerc_sorted_pf_cand_jet_idx
+                # Save uncorrected jet values
+                events[f"{jet_coll}_pt_uncorr"] = jerc_pt_uncorr
+                events[f"{jet_coll}_mass_uncorr"] = jerc_mass_uncorr
+                # Only update PFCands jetIdx if it exists (maps PFCand→jet, needs updating when jets reorder)
+                if f"{jet_coll}PFCands_jetIdx" in events.fields:
+                    jerc_pf_cand_jet_idx = events[f"{jet_coll}PFCands_jetIdx"]
+                    jerc_sorted_pf_cand_jet_idx = ak.Array([p[idx] for idx, p in zip(jerc_pf_cand_jet_idx, jerc_permutation)])
+                    events[f"{jet_coll}PFCands_jetIdx"] = jerc_sorted_pf_cand_jet_idx
 
 
             if variation in ["jec_up", "jec_down", "SVJjec_up", "SVJjec_down","jer_up", "jer_down"]: 
@@ -785,12 +794,20 @@ def apply_variation_pfnano(events, variation, year, run, pfnano_sys_file):
                             jerc_cache,
                             ) 
 
-                        met_ptcorr, met_phicorr = corrected_MET_updated_JECs
-                        events["MET_pt"] = met_ptcorr
-                        events["MET_phi"] = met_phicorr
+                        met_ptcorr, met_phicorr, met_pt_uncorr, met_phi_uncorr = corrected_MET_updated_JECs
+                        # Check if this is scouting data (has ScoutMET) or regular NanoAOD (has MET)
+                        met_name = "ScoutMET_pt" if "ScoutMET_pt" in events.fields else "MET_pt"
+                        met_phi_name = "ScoutMET_phi" if "ScoutMET_phi" in events.fields else "MET_phi"
+                        met_uncorr_name = "ScoutMET_pt_uncorr" if "ScoutMET_pt" in events.fields else "MET_pt_uncorr"
+                        met_phi_uncorr_name = "ScoutMET_phi_uncorr" if "ScoutMET_phi" in events.fields else "MET_phi_uncorr"
+                        events[met_name] = met_ptcorr
+                        events[met_phi_name] = met_phicorr
+                        # Save uncorrected MET values
+                        events[met_uncorr_name] = met_pt_uncorr
+                        events[met_phi_uncorr_name] = met_phi_uncorr
 
                     #unpack corrected_JERC_jets
-                    jerc_corr_pt, jerc_corr_eta, jerc_corr_phi, jerc_corr_mass = corrected_JERC_jets
+                    jerc_corr_pt, jerc_corr_eta, jerc_corr_phi, jerc_corr_mass, jerc_pt_uncorr, jerc_mass_uncorr = corrected_JERC_jets
 
                     #adding the JEC varied jets to the events
                     jerc_permutation = ak.argsort(jerc_corr_pt, ascending=False)
@@ -798,13 +815,20 @@ def apply_variation_pfnano(events, variation, year, run, pfnano_sys_file):
                     jerc_corr_eta = jerc_corr_eta[jerc_permutation]
                     jerc_corr_phi = jerc_corr_phi[jerc_permutation]
                     jerc_corr_mass = jerc_corr_mass[jerc_permutation]
+                    jerc_pt_uncorr = jerc_pt_uncorr[jerc_permutation]
+                    jerc_mass_uncorr = jerc_mass_uncorr[jerc_permutation]
                     events[f"{jet_coll}_pt"] = jerc_corr_pt
                     events[f"{jet_coll}_eta"] = jerc_corr_eta
                     events[f"{jet_coll}_phi"] = jerc_corr_phi
                     events[f"{jet_coll}_mass"] = jerc_corr_mass
-                    jerc_pf_cand_jet_idx = events[f"{jet_coll}PFCands_jetIdx"]
-                    jerc_sorted_pf_cand_jet_idx = ak.Array([p[idx] for idx, p in zip(jerc_pf_cand_jet_idx, jerc_permutation)])
-                    events[f"{jet_coll}PFCands_jetIdx"] = jerc_sorted_pf_cand_jet_idx
+                    # Save uncorrected jet values
+                    events[f"{jet_coll}_pt_uncorr"] = jerc_pt_uncorr
+                    events[f"{jet_coll}_mass_uncorr"] = jerc_mass_uncorr
+                    # Only update PFCands jetIdx if it exists (maps PFCand→jet, needs updating when jets reorder)
+                    if f"{jet_coll}PFCands_jetIdx" in events.fields:
+                        jerc_pf_cand_jet_idx = events[f"{jet_coll}PFCands_jetIdx"]
+                        jerc_sorted_pf_cand_jet_idx = ak.Array([p[idx] for idx, p in zip(jerc_pf_cand_jet_idx, jerc_permutation)])
+                        events[f"{jet_coll}PFCands_jetIdx"] = jerc_sorted_pf_cand_jet_idx
 
 
                     #compute the custom jecs variations
@@ -817,6 +841,8 @@ def apply_variation_pfnano(events, variation, year, run, pfnano_sys_file):
                     )
 
                 if variation in ["jer_up", "jer_down"]: 
+                    # Create fresh cache for each variation calculation to avoid caching issues
+                    fresh_cache = {}
                     corrected_jets_met_jercs = calc_jerc_variations_PFNano(
                         events,
                         year,
@@ -824,7 +850,7 @@ def apply_variation_pfnano(events, variation, year, run, pfnano_sys_file):
                         jet_coll,
                         jerc_variations,
                         variation,
-                        jerc_cache,
+                        fresh_cache,
                     )
 
 
@@ -839,25 +865,29 @@ def apply_variation_pfnano(events, variation, year, run, pfnano_sys_file):
                             jerc_cache,
                             ) 
 
-                        met_ptcorr, met_phicorr = corrected_MET_updated_JECs
-                        events["MET_pt"] = met_ptcorr
-                        events["MET_phi"] = met_phicorr
+                        met_ptcorr, met_phicorr, met_pt_uncorr, met_phi_uncorr = corrected_MET_updated_JECs
+                        events["ScoutMET_pt"] = met_ptcorr
+                        events["ScoutMET_phi"] = met_phicorr
+                        # Save uncorrected MET values
+                        events["ScoutMET_pt_uncorr"] = met_pt_uncorr
+                        events["ScoutMET_phi_uncorr"] = met_phi_uncorr
 
                         #Here propagate the corrections to METSignificance
-                        met_sig_corr_nom = propagate_jecs_to_METSig_PFNano(events,
-                                                    year,
-                                                    run,
-                                                    jet_coll,
-                                                    jerc_variations,
-                                                    jerc_cache,
-                                                    )
+                        # met_sig_corr_nom = propagate_jecs_to_METSig_PFNano(events,
+                        #                             year,
+                        #                             run,
+                        #                             jet_coll,
+                        #                             jerc_variations,
+                        #                             jerc_cache,
+                        #                             )
                         
-                        events["MET_significance"] = met_sig_corr_nom
+                        #events["MET_significance"] = met_sig_corr_nom
 
 
 
                 if variation in ["jec_up", "jec_down"]: 
-                    
+                    # Create fresh cache for each variation calculation to avoid caching issues
+                    fresh_cache = {}
                     corrected_jets_met_jercs = calc_jerc_variations_PFNano(
                         events,
                         year,
@@ -865,7 +895,7 @@ def apply_variation_pfnano(events, variation, year, run, pfnano_sys_file):
                         jet_coll,
                         jerc_variations,
                         variation,
-                        jerc_cache,
+                        fresh_cache,
                     )
 
 
@@ -873,9 +903,9 @@ def apply_variation_pfnano(events, variation, year, run, pfnano_sys_file):
                 if variation in ["jec_up", "jec_down", "jer_up", "jer_down", "SVJjec_up", "SVJjec_down"]:
                     #here unpack corrections / here do not propagate the JER variations to MET
                     if (radius == 4) and (variation in ["jec_up", "jec_down", "SVJjec_up", "SVJjec_down"]):
-                        corr_pt, corr_eta, corr_phi, corr_mass, met_ptcorr, met_phicorr, custom_corr_factor = corrected_jets_met_jercs
+                        corr_pt, corr_eta, corr_phi, corr_mass, met_ptcorr, met_phicorr, custom_corr_factor, pt_uncorr, mass_uncorr, met_pt_uncorr, met_phi_uncorr = corrected_jets_met_jercs
                     else:
-                        corr_pt, corr_eta, corr_phi, corr_mass, _, _, custom_corr_factor = corrected_jets_met_jercs
+                        corr_pt, corr_eta, corr_phi, corr_mass, _, _, custom_corr_factor, pt_uncorr, mass_uncorr, _, _ = corrected_jets_met_jercs
                 
 
                     #adding the JERC varied jets to the events
@@ -885,28 +915,43 @@ def apply_variation_pfnano(events, variation, year, run, pfnano_sys_file):
                     corr_phi = corr_phi[permutation]
                     corr_mass = corr_mass[permutation]
                     custom_corr_factor = custom_corr_factor[permutation]
+                    pt_uncorr = pt_uncorr[permutation]
+                    mass_uncorr = mass_uncorr[permutation]
                     events[f"{jet_coll}_pt"] = corr_pt
                     events[f"{jet_coll}_eta"] = corr_eta
                     events[f"{jet_coll}_phi"] = corr_phi
                     events[f"{jet_coll}_mass"] = corr_mass
+                    # Save uncorrected jet values
+                    events[f"{jet_coll}_pt_uncorr"] = pt_uncorr
+                    events[f"{jet_coll}_mass_uncorr"] = mass_uncorr
                     #add corr factor for custom SVJ JEC
                     events[f"{jet_coll}_corrSVJJEC"] = custom_corr_factor
-                    pf_cand_jet_idx = events[f"{jet_coll}PFCands_jetIdx"]
-                    sorted_pf_cand_jet_idx = ak.Array([p[idx] for idx, p in zip(pf_cand_jet_idx, permutation)])
-                    events[f"{jet_coll}PFCands_jetIdx"] = sorted_pf_cand_jet_idx
+                    # Only update PFCands jetIdx if it exists (maps PFCand→jet, needs updating when jets reorder)
+                    if f"{jet_coll}PFCands_jetIdx" in events.fields:
+                        pf_cand_jet_idx = events[f"{jet_coll}PFCands_jetIdx"]
+                        sorted_pf_cand_jet_idx = ak.Array([p[idx] for idx, p in zip(pf_cand_jet_idx, permutation)])
+                        events[f"{jet_coll}PFCands_jetIdx"] = sorted_pf_cand_jet_idx
                 
                     #add the MET corrections, here correct MET only if the variation is JEC (not JER)
                     if (radius == 4) and (variation in ["jec_up", "jec_down", "SVJjec_up", "SVJjec_down"]):
-                        events["MET_pt"] = met_ptcorr
-                        events["MET_phi"] = met_phicorr
+                        # Check if this is scouting data (has ScoutMET) or regular NanoAOD (has MET)
+                        met_name = "ScoutMET_pt" if "ScoutMET_pt" in events.fields else "MET_pt"
+                        met_phi_name = "ScoutMET_phi" if "ScoutMET_phi" in events.fields else "MET_phi"
+                        met_uncorr_name = "ScoutMET_pt_uncorr" if "ScoutMET_pt" in events.fields else "MET_pt_uncorr"
+                        met_phi_uncorr_name = "ScoutMET_phi_uncorr" if "ScoutMET_phi" in events.fields else "MET_phi_uncorr"
+                        events[met_name] = met_ptcorr
+                        events[met_phi_name] = met_phicorr
+                        # Save uncorrected MET values
+                        events[met_uncorr_name] = met_pt_uncorr
+                        events[met_phi_uncorr_name] = met_phi_uncorr
 
                         #Here propagate the corrections to METSignificance
                         #CZZ: MET must come from jerc varied collections, otherwise nominal when running the unclustered energy variation
-                        metSigCalc = MetSignificanceCalculator(events,
-                                                year,
-                                                run,
-                                                ) 
-                        events["MET_significance"] = metSigCalc.getSignificance()                 
+                        # metSigCalc = MetSignificanceCalculator(events,
+                        #                         year,
+                        #                         run,
+                        #                         ) 
+                        # events["MET_significance"] = metSigCalc.getSignificance()                 
         
     
     if variation in ["unclEn_up", "unclEn_down"]:
@@ -931,21 +976,21 @@ def apply_variation_pfnano(events, variation, year, run, pfnano_sys_file):
         met_ptcorr, met_phicorr = corrected_unclEn_met
 
         #Here propagate the corrections to METSignificance
-        met_sig_corr_nom = propagate_jecs_to_METSig_PFNano(events,
-                                    year,
-                                    run,
-                                    jet_coll="Jet",
-                                    jerc_variations=jerc_variations,
-                                    jerc_cache=jerc_cache,
-                                    make_unclustered_En_var = True,
-                                    variation = variation,
-                                    )
+        # met_sig_corr_nom = propagate_jecs_to_METSig_PFNano(events,
+        #                             year,
+        #                             run,
+        #                             jet_coll="Jet",
+        #                             jerc_variations=jerc_variations,
+        #                             jerc_cache=jerc_cache,
+        #                             make_unclustered_En_var = True,
+        #                             variation = variation,
+        #                             )
         
-        events["MET_significance"] = met_sig_corr_nom
+        #events["MET_significance"] = met_sig_corr_nom
 
         #add the MET corrections
-        events["MET_pt"] = met_ptcorr
-        events["MET_phi"] = met_phicorr
+        events["ScoutMET_pt"] = met_ptcorr
+        events["ScoutMET_phi"] = met_phicorr
 
 
         #CZZ: first compute the JEC variations for AK4 and AK8 jets
@@ -963,7 +1008,7 @@ def apply_variation_pfnano(events, variation, year, run, pfnano_sys_file):
                     ) 
             
             #unpack corrected_JER_jets
-            jec_corr_pt, jec_corr_eta, jec_corr_phi, jec_corr_mass = corrected_JEC_jets
+            jec_corr_pt, jec_corr_eta, jec_corr_phi, jec_corr_mass, jec_pt_uncorr, jec_mass_uncorr = corrected_JEC_jets
 
             #adding the JER varied jets to the events
             jec_permutation = ak.argsort(jec_corr_pt, ascending=False)
@@ -971,13 +1016,20 @@ def apply_variation_pfnano(events, variation, year, run, pfnano_sys_file):
             jec_corr_eta = jec_corr_eta[jec_permutation]
             jec_corr_phi = jec_corr_phi[jec_permutation]
             jec_corr_mass = jec_corr_mass[jec_permutation]
+            jec_pt_uncorr = jec_pt_uncorr[jec_permutation]
+            jec_mass_uncorr = jec_mass_uncorr[jec_permutation]
             events[f"{jet_coll}_pt"] = jec_corr_pt
             events[f"{jet_coll}_eta"] = jec_corr_eta
             events[f"{jet_coll}_phi"] = jec_corr_phi
             events[f"{jet_coll}_mass"] = jec_corr_mass
-            jec_pf_cand_jet_idx = events[f"{jet_coll}PFCands_jetIdx"]
-            jec_sorted_pf_cand_jet_idx = ak.Array([p[idx] for idx, p in zip(jec_pf_cand_jet_idx, jec_permutation)])
-            events[f"{jet_coll}PFCands_jetIdx"] = jec_sorted_pf_cand_jet_idx
+            # Save uncorrected jet values
+            events[f"{jet_coll}_pt_uncorr"] = jec_pt_uncorr
+            events[f"{jet_coll}_mass_uncorr"] = jec_mass_uncorr
+            # Only update PFCands jetIdx if it exists (maps PFCand→jet, needs updating when jets reorder)
+            if f"{jet_coll}PFCands_jetIdx" in events.fields:
+                jec_pf_cand_jet_idx = events[f"{jet_coll}PFCands_jetIdx"]
+                jec_sorted_pf_cand_jet_idx = ak.Array([p[idx] for idx, p in zip(jec_pf_cand_jet_idx, jec_permutation)])
+                events[f"{jet_coll}PFCands_jetIdx"] = jec_sorted_pf_cand_jet_idx
 
          
 

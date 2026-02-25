@@ -22,8 +22,8 @@ jer_names_dict_pt = {
         "FatJet": "Summer19UL17_JRV3_MC_PtResolution_AK8PFPuppi",
     },
     "2018mc": {
-        "Jet": "Summer19UL18_JRV2_MC_PtResolution_AK4PFchs",
-        "FatJet": "Summer19UL18_JRV2_MC_PtResolution_AK8PFPuppi",
+        "Jet": "Autumn18_V7_MC_PtResolution_AK4PFchs",
+        "FatJet": "Autumn18_V7_MC_PtResolution_AK8PFPuppi",
     },
 
 }
@@ -43,8 +43,8 @@ jer_names_dict_eta = {
         "FatJet": "Summer19UL17_JRV3_MC_EtaResolution_AK8PFPuppi",
     },
     "2018mc": {
-        "Jet": "Summer19UL18_JRV2_MC_EtaResolution_AK4PFchs",
-        "FatJet": "Summer19UL18_JRV2_MC_EtaResolution_AK8PFPuppi",
+        "Jet": "Autumn18_V7_MC_EtaResolution_AK4PFchs",
+        "FatJet": "Autumn18_V7_MC_EtaResolution_AK8PFPuppi",
     },
 
 }
@@ -64,8 +64,8 @@ jer_names_dict_phi = {
         "FatJet": "Summer19UL17_JRV3_MC_PhiResolution_AK8PFPuppi",
     },
     "2018mc": {
-        "Jet": "Summer19UL18_JRV2_MC_PhiResolution_AK4PFchs",
-        "FatJet": "Summer19UL18_JRV2_MC_PhiResolution_AK8PFPuppi",
+        "Jet": "Autumn18_V7_MC_PhiResolution_AK4PFchs",
+        "FatJet": "Autumn18_V7_MC_PhiResolution_AK8PFPuppi",
     },
 
 }

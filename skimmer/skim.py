@@ -348,7 +348,7 @@ def __prepare_uproot_job_kwargs_from_coffea_args(args):
 
     variation_type = args.variation
     weight_variations = args.weight_variations
-    if args.nano_aod:
+    if args.nano_aod or args.nano_aod_scouting:
         variation_type = args.variation_nano
         weight_variations = args.weight_variations_nano
 
@@ -362,7 +362,7 @@ def __prepare_uproot_job_kwargs_from_coffea_args(args):
             is_mc=args.is_mc,
             variation=variation_type,
             weight_variations=weight_variations,
-            nano_aod=args.nano_aod,
+            nano_aod=args.nano_aod or args.nano_aod_scouting,
             pfnano_corr_file=args.pfnano_corrections_file,
         ),
         "executor": executor,

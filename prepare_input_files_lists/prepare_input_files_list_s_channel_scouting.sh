@@ -1,7 +1,7 @@
 #!/bin/bash
 
-dataset_directory=/ceph/mgais/PFNanoAOD_SVJ_std2_UL2018_scouting_truth_study_inv_parts
-dataset_config=dataset_configs.s_channel_scouting_signal_paths
+dataset_directory=/ceph/mgais/Run2ScoutingSkims_JEC
+dataset_config=dataset_configs.s_channel_scouting_dataset_paths
 
 module=analysis_configs.s_channel_scouting_pre_selection
 selection_name=s_channel_scouting_pre_selection
@@ -21,24 +21,93 @@ dataset_names=(
     #
     # Signals
     #
-    mMed-700GeV_mDark-20GeV_rinv-0.3_alpha-peak_13TeV
+    # s-channel_mMed-700_mDark-20_rinv-0.3
+    # s-channel_mMed-700_mDark-20_rinv-0.5
+    # s-channel_mMed-700_mDark-20_rinv-0.7
 
-    mMed-800GeV_mDark-20GeV_rinv-0.3_alpha-peak_13TeV
-    mMed-800GeV_mDark-20GeV_rinv-0.5_alpha-peak_13TeV
-    mMed-800GeV_mDark-20GeV_rinv-0.7_alpha-peak_13TeV
+    # s-channel_mMed-800_mDark-20_rinv-0.3
+    # s-channel_mMed-800_mDark-20_rinv-0.5
+    # s-channel_mMed-800_mDark-20_rinv-0.7
 
-    mMed-900GeV_mDark-20GeV_rinv-0.3_alpha-peak_13TeV
-    mMed-900GeV_mDark-20GeV_rinv-0.5_alpha-peak_13TeV
-    mMed-900GeV_mDark-20GeV_rinv-0.7_alpha-peak_13TeV
+    # s-channel_mMed-900_mDark-20_rinv-0.3
+    # s-channel_mMed-900_mDark-20_rinv-0.5
+    # s-channel_mMed-900_mDark-20_rinv-0.7
 
-    mMed-1000GeV_mDark-20GeV_rinv-0.3_alpha-peak_13TeV
-    mMed-1000GeV_mDark-20GeV_rinv-0.5_alpha-peak_13TeV
-    mMed-1000GeV_mDark-20GeV_rinv-0.7_alpha-peak_13TeV
+    # s-channel_mMed-1000_mDark-20_rinv-0.3
+    # s-channel_mMed-1000_mDark-20_rinv-0.5
+    # s-channel_mMed-1000_mDark-20_rinv-0.7
 
-    mMed-1500GeV_mDark-20GeV_rinv-0.3_alpha-peak_13TeV
-    mMed-1500GeV_mDark-20GeV_rinv-0.5_alpha-peak_13TeV
-    mMed-1500GeV_mDark-20GeV_rinv-0.7_alpha-peak_13TeV
+    s-channel_mMed-1100_mDark-20_rinv-0.3
+    # s-channel_mMed-1100_mDark-20_rinv-0.5
+    # s-channel_mMed-1100_mDark-20_rinv-0.7
+
+    # s-channel_mMed-1200_mDark-20_rinv-0.3
+    # s-channel_mMed-1200_mDark-20_rinv-0.5
+    # s-channel_mMed-1200_mDark-20_rinv-0.7
+
+    # s-channel_mMed-1300_mDark-20_rinv-0.3
+    # s-channel_mMed-1300_mDark-20_rinv-0.5
+    # s-channel_mMed-1300_mDark-20_rinv-0.7
+
+    # s-channel_mMed-1400_mDark-20_rinv-0.3
+    # s-channel_mMed-1400_mDark-20_rinv-0.5
+    # s-channel_mMed-1400_mDark-20_rinv-0.7
+
+    # s-channel_mMed-1500_mDark-20_rinv-0.3
+    # s-channel_mMed-1500_mDark-20_rinv-0.5
+    # s-channel_mMed-1500_mDark-20_rinv-0.7
+
+    # s-channel_mMed-3000_mDark-20_rinv-0.3
+    # s-channel_mMed-3000_mDark-20_rinv-0.5
+    # s-channel_mMed-3000_mDark-20_rinv-0.7
+
+    # #
+    # # Backgrounds
+    # #
+    # # QCD
+    # #
+    # # low HT bins don't survive the pre-selection, can be emitted
+    # #QCD_HT100to200
+    # #QCD_HT200to300 
+    QCD_HT300to500
+    QCD_HT500to700
+    QCD_HT700to1000
+    QCD_HT1000to1500
+    QCD_HT1500to2000
+    QCD_HT2000toInf
+
+
+    # #
+    # # TTJets
+    # #
+    # TTJets_TuneCP5
+    # TTJets_SingleLeptFromT
+    # TTJets_SingleLeptFromTbar
+    # TTJets_DiLept
+    # TTJets_HT-600to800
+    # TTJets_HT-800to1200
+    # TTJets_HT-1200to2500
+    # TTJets_HT-2500toInf
+
+    # #
+    # # WJets
+    # #
+    # WJetsToLNu_HT-400To600
+    # WJetsToLNu_HT-600To800
+    # WJetsToLNu_HT-800To1200
+    # WJetsToLNu_HT-1200To2500
+    # WJetsToLNu_HT-2500ToInf
+
+    # #
+    # # ZJets
+    # #
+    # ZJetsToNuNu_HT-400To600
+    # ZJetsToNuNu_HT-600To800
+    # ZJetsToNuNu_HT-800To1200
+    # ZJetsToNuNu_HT-1200To2500
+    # ZJetsToNuNu_HT-2500ToInf
 )
+
 
 prepare_input_files_list() {
 
@@ -53,8 +122,8 @@ prepare_input_files_list() {
     echo "Preparing input files for dataset ${dataset_name} year ${year} and selection ${selection_name}"
 
     python list_dataset_files.py -d ${dataset_name} -y ${year} -c ${dataset_config} -o ${dataset_directory} -nano_scout
-    python compute_unweighted_selection_efficiency.py -d ${dataset_name} -y ${year} -p ${module} -s ${selection_name} -i ${dataset_directory} -o ${dataset_directory} -n 6 -e futures -c 10000 -nano_scout
-    python prepare_input_files_list.py -d ${dataset_name} -y ${year} -s ${selection_name} -i ${dataset_directory} -o ${dataset_directory} -m 50000
+    python compute_unweighted_selection_efficiency.py -d ${dataset_name} -y ${year} -p ${module} -s ${selection_name} -i ${dataset_directory} -o ${dataset_directory} -n 30 -e futures -c 1000 -nano_scout  -precision 15
+    python prepare_input_files_list.py -d ${dataset_name} -y ${year} -s ${selection_name} -i ${dataset_directory} -o ${dataset_directory} -m 5000 #50000
 }
 
 

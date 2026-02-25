@@ -118,23 +118,77 @@ def calc_jer_variation(
 ####### PFNano section ########
 ###############################
 
+def build_genjet_idx_manual(jet_eta_reco, jet_phi_reco, jet_eta_gen, jet_phi_gen, max_dr=0.4):
+    """
+    Manual gen-matching via deltaR.
+    TODO: This should be implemented in the CMSSW ntuplizer for efficiency!
+    Returns array of gen jet indices for each reco jet (-1 if no match).
+    
+    This is a PLACEHOLDER for testing - proper implementation should be upstream.
+    """
+    # Calculate deltaR between all reco-gen jet pairs
+    def calc_dr(eta1, phi1, eta2, phi2):
+        deta = eta1 - eta2
+        dphi = (phi1 - phi2 + np.pi) % (2 * np.pi) - np.pi
+        return np.sqrt(deta**2 + dphi**2)
+    
+    indices = []
+    for evt_reco_eta, evt_reco_phi, evt_gen_eta, evt_gen_phi in zip(
+        jet_eta_reco, jet_phi_reco, jet_eta_gen, jet_phi_gen
+    ):
+        evt_indices = []
+        for reco_eta, reco_phi in zip(evt_reco_eta, evt_reco_phi):
+            best_idx = -1
+            min_dr = max_dr
+            for gen_idx, (gen_eta, gen_phi) in enumerate(zip(evt_gen_eta, evt_gen_phi)):
+                dr = calc_dr(reco_eta, reco_phi, gen_eta, gen_phi)
+                if dr < min_dr:
+                    min_dr = dr
+                    best_idx = gen_idx
+            evt_indices.append(best_idx)
+        indices.append(evt_indices)
+    
+    return ak.Array(indices)
+
 
 def make_jets_for_jerc(events,jet_coll, event_rho, correction_key):
         
         jets = {}
-        jets["pt_raw"] = (1 - events[f"{jet_coll}_rawFactor"])*events[f"{jet_coll}_pt"]
-        jets["mass_raw"] = (1 - events[f"{jet_coll}_rawFactor"])*events[f"{jet_coll}_mass"]
+        # Check if rawFactor exists (standard NanoAOD) or use jets as-is (scouting)
+        raw_factor_field = f"{jet_coll}_rawFactor"
+        if raw_factor_field in events.fields:
+            jets["pt_raw"] = (1 - events[raw_factor_field])*events[f"{jet_coll}_pt"]
+            jets["mass_raw"] = (1 - events[raw_factor_field])*events[f"{jet_coll}_mass"]
+        else:
+            # Scouting data: assume jets are already at raw level or use pt/mass as-is
+            jets["pt_raw"] = events[f"{jet_coll}_pt"]
+            jets["mass_raw"] = events[f"{jet_coll}_mass"]
         jets["event_rho"] = ak.broadcast_arrays(event_rho, events[f"{jet_coll}_pt"])[0]
         if "NOJER" not in correction_key:
             if "FatJet" in jet_coll:
                 m_genMatch_dR2max = 0.4*0.4
+                
+                # TODO: FatJet_genJetAK8Idx should be implemented in CMSSW ntuplizer!
+                # For now, build indices manually as placeholder for testing
+                if f"FatJet_genJetAK8Idx" in events.fields:
+                    genjet_idx = events[f"FatJet_genJetAK8Idx"]
+                else:
+                    # Fallback: manual matching (slow, for testing only)
+                    genjet_idx = build_genjet_idx_manual(
+                        events[f"{jet_coll}_eta"],
+                        events[f"{jet_coll}_phi"],
+                        events[f"Gen{jet_coll}_eta"],
+                        events[f"Gen{jet_coll}_phi"],
+                        max_dr=0.4
+                    )
+                
                 jets["pt_gen"] = gen_matching_tools.get_matched_gen_jets(events[f"{jet_coll}_pt"], 
                                                                          events[f"{jet_coll}_eta"], 
                                                                          events[f"{jet_coll}_phi"], 
-                                                                         events[f"GenJetAK8_pt"], 
-                                                                         events[f"GenJetAK8_eta"], 
-                                                                         events[f"GenJetAK8_phi"], 
-                                                                         events[f"FatJet_genJetAK8Idx"],
+                                                                         events[f"Gen{jet_coll}_pt"], 
+                                                                         events[f"Gen{jet_coll}_eta"], 
+                                                                         events[f"Gen{jet_coll}_phi"], 
+                                                                         genjet_idx,
                                                                          m_genMatch_dR2max,
                                                                          correction_key.replace("NOJEC",""),
                                                                          jet_coll,
@@ -142,13 +196,28 @@ def make_jets_for_jerc(events,jet_coll, event_rho, correction_key):
                                                                          )
             else:
                 m_genMatch_dR2max = 0.2*0.2
+                
+                # TODO: Jet_genJetIdx should be implemented in CMSSW ntuplizer!
+                # For now, build indices manually as placeholder for testing
+                if f"{jet_coll}_genJetIdx" in events.fields:
+                    genjet_idx = events[f"{jet_coll}_genJetIdx"]
+                else:
+                    # Fallback: manual matching (slow, for testing only)
+                    genjet_idx = build_genjet_idx_manual(
+                        events[f"{jet_coll}_eta"],
+                        events[f"{jet_coll}_phi"],
+                        events[f"Gen{jet_coll}_eta"],
+                        events[f"Gen{jet_coll}_phi"],
+                        max_dr=0.2
+                    )
+                
                 jets["pt_gen"] = gen_matching_tools.get_matched_gen_jets(events[f"{jet_coll}_pt"], 
                                                                          events[f"{jet_coll}_eta"], 
                                                                          events[f"{jet_coll}_phi"], 
                                                                          events[f"Gen{jet_coll}_pt"], 
                                                                          events[f"Gen{jet_coll}_eta"], 
                                                                          events[f"Gen{jet_coll}_phi"], 
-                                                                         events[f"{jet_coll}_genJetIdx"],
+                                                                         genjet_idx,
                                                                          m_genMatch_dR2max,
                                                                          correction_key.replace("NOJEC",""),
                                                                          jet_coll,
@@ -187,9 +256,20 @@ def make_jets_for_jerc(events,jet_coll, event_rho, correction_key):
 def make_met_for_jerc(events):
         
         met = {}
-
-        met["pt"] = events["RawMET_pt"]    #RawMET_pt
-        met["phi"] = events["RawMET_phi"] #RawMET_phi
+        
+        # Check if RawMET exists (standard NanoAOD) or use ScoutMET/MET (scouting)
+        if "RawMET_pt" in events.fields:
+            met["pt"] = events["RawMET_pt"]
+            met["phi"] = events["RawMET_phi"]
+        elif "ScoutMET_pt" in events.fields:
+            # Scouting data uses ScoutMET
+            met["pt"] = events["ScoutMET_pt"]
+            met["phi"] = events["ScoutMET_phi"]
+        else:
+            # Fallback to regular MET
+            met["pt"] = events["MET_pt"]
+            met["phi"] = events["MET_phi"]
+            
         met["MetUnclustEnUpDeltaX"] = events["MET_MetUnclustEnUpDeltaX"]
         met["MetUnclustEnUpDeltaY"] = events["MET_MetUnclustEnUpDeltaY"]
 
@@ -223,7 +303,7 @@ def apply_jers_PFNano(
     # calculate all variables needed as inputs
     jerc_key_label = ""
 
-    jerc_key_label = "NOJEC"
+    # jerc_key_label = "NOJEC"  # COMMENTED TO TEST JER
 
     #build jet corrections
     correction_key = None
@@ -235,8 +315,9 @@ def apply_jers_PFNano(
     else:
         correction_key = f"{year}{run.lower()}{jerc_key_label}" 
 
-    rhos = events.fixedGridRhoFastjetAll
-    jets_corrected = jet_factory[correction_key].build(make_jets_for_jerc(events,jet_coll, rhos, correction_key), jerc_cache)
+    # Check if using scouting data (rho) or standard NanoAOD (fixedGridRhoFastjetAll)
+    rho = events.rho if "rho" in events.fields else events.fixedGridRhoFastjetAll
+    jets_corrected = jet_factory[correction_key].build(make_jets_for_jerc(events,jet_coll, rho, correction_key), jerc_cache)
 
     #extract corrections to jets
     pt_corr = jets_corrected.pt_jer
@@ -261,7 +342,8 @@ def apply_jecs_PFNano(
 
 
     # calculate all variables needed as inputs
-    jerc_key_label = "NOJER"
+    # jerc_key_label = "NOJER"  # COMMENTED TO TEST JER
+    jerc_key_label = ""
 
 
     #build jet corrections
@@ -274,8 +356,9 @@ def apply_jecs_PFNano(
     else:
         correction_key = f"{year}{run.lower()}{jerc_key_label}" 
 
-    rhos = events.fixedGridRhoFastjetAll
-    jets_corrected = jet_factory[correction_key].build(make_jets_for_jerc(events,jet_coll, rhos, correction_key), jerc_cache)
+    # Check if using scouting data (rho) or standard NanoAOD (fixedGridRhoFastjetAll)
+    rho = events.rho if "rho" in events.fields else events.fixedGridRhoFastjetAll
+    jets_corrected = jet_factory[correction_key].build(make_jets_for_jerc(events,jet_coll, rho, correction_key), jerc_cache)
 
 
     #extract corrections to jets
@@ -306,6 +389,9 @@ def apply_jercs_PFNano(
     # calculate all variables needed as inputs, apply both JEC and JER
     jerc_key_label = ""
 
+    # TODO for now only JEC, need to fix matching for JER application
+    # jerc_key_label = "NOJER"  # COMMENTED TO TEST JER
+
     #build jet corrections
     correction_key = None
     if "2016" in year:
@@ -316,18 +402,22 @@ def apply_jercs_PFNano(
     else:
         correction_key = f"{year}{run.lower()}{jerc_key_label}" 
 
-    rhos = events.fixedGridRhoFastjetAll
-    jets_corrected = jet_factory[correction_key].build(make_jets_for_jerc(events,jet_coll, rhos, correction_key), jerc_cache)
-
+    # Check if using scouting data (rho) or standard NanoAOD (fixedGridRhoFastjetAll)
+    rho = events.rho if "rho" in events.fields else events.fixedGridRhoFastjetAll
+    jets_input = make_jets_for_jerc(events,jet_coll, rho, correction_key)
+    jets_corrected = jet_factory[correction_key].build(jets_input, jerc_cache)
 
     #extract corrections to jets
     pt_corr = jets_corrected.pt
     eta_corr = jets_corrected.eta
     phi_corr = jets_corrected.phi
     mass_corr = jets_corrected.mass
+    
+    # Extract raw (uncorrected) values to save
+    pt_uncorr = jets_input.pt_raw
+    mass_uncorr = jets_input.mass_raw
 
-
-    return pt_corr, eta_corr, phi_corr, mass_corr
+    return pt_corr, eta_corr, phi_corr, mass_corr, pt_uncorr, mass_uncorr
 
 
 #Propage JECs to MET
@@ -357,8 +447,9 @@ def propagate_jecs_to_MET_PFNano(
     else:
         correction_key = f"{year}{run.lower()}{jerc_key_label}" 
 
-    rhos = events.fixedGridRhoFastjetAll
-    jets_corrected_nom = jet_factory[correction_key].build(make_jets_for_jerc(events,jet_coll, rhos, correction_key), jerc_cache)
+    # Check if using scouting data (rho) or standard NanoAOD (fixedGridRhoFastjetAll)
+    rho = events.rho if "rho" in events.fields else events.fixedGridRhoFastjetAll
+    jets_corrected_nom = jet_factory[correction_key].build(make_jets_for_jerc(events,jet_coll, rho, correction_key), jerc_cache)
 
     #extract corrected jets
     jet_pt_corr_nom  = jets_corrected_nom.pt
@@ -367,12 +458,21 @@ def propagate_jecs_to_MET_PFNano(
     #extract raw jet pt
     jet_pt_raw = jets_corrected_nom.pt_raw
 
-    met_pt_raw = events["RawMET_pt"]
-    met_phi_raw = events["RawMET_phi"]
+    # Get raw MET - check for RawMET (standard) or ScoutMET (scouting)
+    if "RawMET_pt" in events.fields:
+        met_pt_raw = events["RawMET_pt"]
+        met_phi_raw = events["RawMET_phi"]
+    elif "ScoutMET_pt" in events.fields:
+        met_pt_raw = events["ScoutMET_pt"]
+        met_phi_raw = events["ScoutMET_phi"]
+    else:
+        met_pt_raw = events["MET_pt"]
+        met_phi_raw = events["MET_phi"]
 
     corr_t1_met =  update_met_t1_corr(met_pt_raw, met_phi_raw, jet_pt_corr_nom, jet_phi_corr_nom, jet_pt_raw)
     
-    return corr_t1_met.pt, corr_t1_met.phi
+    # Return corrected MET and uncorrected (raw) MET for saving
+    return corr_t1_met.pt, corr_t1_met.phi, met_pt_raw, met_phi_raw
 
 
 
@@ -391,7 +491,8 @@ def propagate_jecs_to_METSig_PFNano(
     jet_factory = jerc_variations[f'{jet_coll.lower()}_factory']
 
     # calculate all variables needed as inputs
-    jerc_key_label = "NOJER"
+    # jerc_key_label = "NOJER"  # COMMENTED TO TEST JER
+    jerc_key_label = ""
 
     #build jet corrections
     correction_key = None
@@ -403,8 +504,9 @@ def propagate_jecs_to_METSig_PFNano(
     else:
         correction_key = f"{year}{run.lower()}{jerc_key_label}" 
 
-    rhos = events.fixedGridRhoFastjetAll
-    jets_corrected_nom = jet_factory[correction_key].build(make_jets_for_jerc(events,jet_coll, rhos, correction_key), jerc_cache)
+    # Check if using scouting data (rho) or standard NanoAOD (fixedGridRhoFastjetAll)
+    rho = events.rho if "rho" in events.fields else events.fixedGridRhoFastjetAll
+    jets_corrected_nom = jet_factory[correction_key].build(make_jets_for_jerc(events,jet_coll, rho, correction_key), jerc_cache)
 
     #extract corrected jets
     jet_pt_corr_nom  = jets_corrected_nom.pt
@@ -465,7 +567,10 @@ def calc_jerc_variations_PFNano(
     jet_factory = jerc_variations[f'{jet_coll.lower()}_factory']
 
     # calculate all variables needed as inputs
-    jerc_key_label = ""
+    # TODO for now only JEC, no JER, empty string before 
+    # For JEC variations, use NOJER to avoid gen-matching requirement
+    # For JER variations, use empty string to include both JEC and JER
+    jerc_key_label = "NOJER" if "jec" in variation else ""
     access_jerc_corr_jets =  ""
 
     if "jec" in variation:
@@ -484,8 +589,10 @@ def calc_jerc_variations_PFNano(
         correction_key = f"{year}{run.lower()}{jerc_key_label}" 
 
     
-    rhos = events.fixedGridRhoFastjetAll
-    jets_corrected = jet_factory[correction_key].build(make_jets_for_jerc(events,jet_coll, rhos, correction_key), jerc_cache)
+    # Check if using scouting data (rho) or standard NanoAOD (fixedGridRhoFastjetAll)
+    rho = events.rho if "rho" in events.fields else events.fixedGridRhoFastjetAll
+    jets_input = make_jets_for_jerc(events,jet_coll, rho, correction_key)
+    jets_corrected = jet_factory[correction_key].build(jets_input, jerc_cache)
 
         
     #extract the direction of the variation
@@ -501,10 +608,26 @@ def calc_jerc_variations_PFNano(
     mass_corr = eval(f"jets_corrected.{access_jerc_corr_jets}.{direction}.mass")
 
     pt_raw_var = eval(f"jets_corrected.{access_jerc_corr_jets}.{direction}.pt_raw")
+    
+    # Extract uncorrected values to save
+    pt_uncorr = jets_input.pt_raw
+    mass_uncorr = jets_input.mass_raw
 
     met =  None
+    met_pt_raw = None
+    met_phi_raw = None
     if jet_coll == "Jet":
-        met = update_met_t1_corr(events["RawMET_pt"], events["RawMET_phi"], pt_corr, phi_corr, pt_raw_var)
+        # Get raw MET - check for RawMET (standard) or ScoutMET (scouting)
+        if "RawMET_pt" in events.fields:
+            met_pt_raw = events["RawMET_pt"]
+            met_phi_raw = events["RawMET_phi"]
+        elif "ScoutMET_pt" in events.fields:
+            met_pt_raw = events["ScoutMET_pt"]
+            met_phi_raw = events["ScoutMET_phi"]
+        else:
+            met_pt_raw = events["MET_pt"]
+            met_phi_raw = events["MET_phi"]
+        met = update_met_t1_corr(met_pt_raw, met_phi_raw, pt_corr, phi_corr, pt_raw_var)
 
     #extract corrections to met
     met_ptcorr = None
@@ -514,7 +637,7 @@ def calc_jerc_variations_PFNano(
         met_phicorr = met.phi
 
 
-    return pt_corr, eta_corr, phi_corr, mass_corr, met_ptcorr, met_phicorr, x_ratio
+    return pt_corr, eta_corr, phi_corr, mass_corr, met_ptcorr, met_phicorr, x_ratio, pt_uncorr, mass_uncorr, met_pt_raw, met_phi_raw
 
 
 
@@ -531,7 +654,8 @@ def calc_unclustered_met_variations_PFNano(
     jet_factory = jerc_variations[f'{jet_coll.lower()}_factory']
 
     # calculate all variables needed as inputs
-    jerc_key_label = "NOJER"
+    # jerc_key_label = "NOJER"  # COMMENTED TO TEST JER
+    jerc_key_label = ""
 
 
     #build jet corrections
@@ -544,8 +668,9 @@ def calc_unclustered_met_variations_PFNano(
     else:
         correction_key = f"{year}{run.lower()}{jerc_key_label}" 
 
-    rhos = events.fixedGridRhoFastjetAll
-    jets_corrected_nom = jet_factory[correction_key].build(make_jets_for_jerc(events,jet_coll, rhos, correction_key), jerc_cache)
+    # Check if using scouting data (rho) or standard NanoAOD (fixedGridRhoFastjetAll)
+    rho = events.rho if "rho" in events.fields else events.fixedGridRhoFastjetAll
+    jets_corrected_nom = jet_factory[correction_key].build(make_jets_for_jerc(events,jet_coll, rho, correction_key), jerc_cache)
 
     #extract corrected jets
     jet_pt_corr_nom  = jets_corrected_nom.pt
@@ -554,8 +679,16 @@ def calc_unclustered_met_variations_PFNano(
     #extract raw jet pt
     jet_pt_raw = jets_corrected_nom.pt_raw
 
-    met_pt_raw = events["RawMET_pt"]
-    met_phi_raw = events["RawMET_phi"]
+    # Get raw MET - check for RawMET (standard) or ScoutMET (scouting)
+    if "RawMET_pt" in events.fields:
+        met_pt_raw = events["RawMET_pt"]
+        met_phi_raw = events["RawMET_phi"]
+    elif "ScoutMET_pt" in events.fields:
+        met_pt_raw = events["ScoutMET_pt"]
+        met_phi_raw = events["ScoutMET_phi"]
+    else:
+        met_pt_raw = events["MET_pt"]
+        met_phi_raw = events["MET_phi"]
 
     #get T1 corrected MET (nominal)
     corr_t1_met = update_met_t1_corr(met_pt_raw, met_phi_raw, jet_pt_corr_nom, jet_phi_corr_nom, jet_pt_raw)
@@ -618,16 +751,34 @@ def calc_custom_svj_jes_variations_PFNano(
         "pt_raw": events[f"{jet_coll}_pt"],
     })
 
+    # For SVJ JES variations, the uncorrected values are the pre-existing corrected values
+    # (since SVJ JES is applied on top of standard JEC)
+    # These should already exist in events as *_uncorr from the nominal correction
+    # But we need to return them here for consistency
+    pt_uncorr = events[f"{jet_coll}_pt_uncorr"] if f"{jet_coll}_pt_uncorr" in events.fields else events[f"{jet_coll}_pt"]
+    mass_uncorr = events[f"{jet_coll}_mass_uncorr"] if f"{jet_coll}_mass_uncorr" in events.fields else events[f"{jet_coll}_mass"]
 
     #now propagate custom jes to met (T1-like correction) if jet_coll is Jet
     met_ptcorr = None
     met_phicorr = None
+    met_pt_uncorr = None
+    met_phi_uncorr = None
     if jet_coll == "Jet":
-        corr_met_custom_jecs = update_met_t1_corr(events["MET_pt"], events["MET_phi"], jets_corrected.pt, jets_corrected.phi, jets_corrected.pt_raw)
+        # Check if this is scouting data (has ScoutMET) or regular NanoAOD (has MET)
+        met_field = "ScoutMET_pt" if "ScoutMET_pt" in events.fields else "MET_pt"
+        met_phi_field = "ScoutMET_phi" if "ScoutMET_phi" in events.fields else "MET_phi"
+        met_uncorr_field = f"{met_field.split('_')[0]}_pt_uncorr"
+        met_phi_uncorr_field = f"{met_phi_field.split('_')[0]}_phi_uncorr"
+        
+        corr_met_custom_jecs = update_met_t1_corr(events[met_field], events[met_phi_field], jets_corrected.pt, jets_corrected.phi, jets_corrected.pt_raw)
         met_ptcorr = corr_met_custom_jecs.pt
         met_phicorr = corr_met_custom_jecs.phi
+        
+        # Get uncorrected MET if it exists
+        met_pt_uncorr = events[met_uncorr_field] if met_uncorr_field in events.fields else events[met_field]
+        met_phi_uncorr = events[met_phi_uncorr_field] if met_phi_uncorr_field in events.fields else events[met_phi_field]
 
-    return jets_corrected.pt, events[f"{jet_coll}_eta"], jets_corrected.phi, events[f"{jet_coll}_mass"]*svj_jecs, met_ptcorr, met_phicorr, x_ratio
+    return jets_corrected.pt, events[f"{jet_coll}_eta"], jets_corrected.phi, events[f"{jet_coll}_mass"]*svj_jecs, met_ptcorr, met_phicorr, x_ratio, pt_uncorr, mass_uncorr, met_pt_uncorr, met_phi_uncorr
     
 
 
