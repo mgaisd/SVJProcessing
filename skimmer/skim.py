@@ -271,6 +271,8 @@ def __prepare_uproot_job_kwargs_from_coffea_args(args):
     else:
         treename = "TreeMaker2/PreSelection"
 
+    executor_args["xrootdtimeout"] = 300  # Increase xrootd timeout to avoid timeouts when running on many files
+
     uproot_job_kwargs = {
         "treename": treename,
         "processor_instance": Skimmer(
