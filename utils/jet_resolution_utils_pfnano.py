@@ -10,20 +10,20 @@ out_path_corrections = path_current_file.replace("utils","data")
 jer_names_dict_pt = { 
 
     "2016preVFPmc": {
-        "Jet": "Summer20UL16APV_JRV3_MC_PtResolution_AK4PFchs",
-        "FatJet": "Summer20UL16APV_JRV3_MC_PtResolution_AK8PFPuppi",
+        "Jet": "Summer16_25nsV1_MC_PtResolution_AK4PF",
+        "FatJet": "Summer16_25nsV1_MC_PtResolution_AK8PF",
     },
     "2016postVFPmc": {
-        "Jet": "Summer20UL16_JRV3_MC_PtResolution_AK4PFchs",
-        "FatJet": "Summer20UL16_JRV3_MC_PtResolution_AK8PFPuppi",
+        "Jet": "Summer16_25nsV1_MC_PtResolution_AK4PF",
+        "FatJet": "Summer16_25nsV1_MC_PtResolution_AK8PF",
     },
     "2017mc": {
-        "Jet": "Summer19UL17_JRV3_MC_PtResolution_AK4PFchs",
-        "FatJet": "Summer19UL17_JRV3_MC_PtResolution_AK8PFPuppi",
+        "Jet": "Fall17_V3_MC_PtResolution_AK4PF",
+        "FatJet": "Fall17_V3_MC_PtResolution_AK8PF",
     },
     "2018mc": {
-        "Jet": "Autumn18_V7_MC_PtResolution_AK4PFchs",
-        "FatJet": "Autumn18_V7_MC_PtResolution_AK8PFPuppi",
+        "Jet": "Autumn18_V7_MC_PtResolution_AK4PF",
+        "FatJet": "Autumn18_V7_MC_PtResolution_AK8PF",
     },
 
 }
@@ -31,20 +31,20 @@ jer_names_dict_pt = {
 jer_names_dict_eta = { 
 
     "2016preVFPmc": {
-        "Jet": "Summer20UL16APV_JRV3_MC_EtaResolution_AK4PFchs",
-        "FatJet": "Summer20UL16APV_JRV3_MC_EtaResolution_AK8PFPuppi",
+        "Jet": "Summer16_25nsV1_MC_EtaResolution_AK4PF",
+        "FatJet": "Summer16_25nsV1_MC_EtaResolution_AK8PF",
     },
     "2016postVFPmc": {
-        "Jet": "Summer20UL16_JRV3_MC_EtaResolution_AK4PFchs",
-        "FatJet": "Summer20UL16_JRV3_MC_EtaResolution_AK8PFPuppi",
+        "Jet": "Summer16_25nsV1_MC_EtaResolution_AK4PF",
+        "FatJet": "Summer16_25nsV1_MC_EtaResolution_AK8PF",
     },
     "2017mc": {
-        "Jet": "Summer19UL17_JRV3_MC_EtaResolution_AK4PFchs",
-        "FatJet": "Summer19UL17_JRV3_MC_EtaResolution_AK8PFPuppi",
+        "Jet": "Fall17_V3_MC_EtaResolution_AK4PF",
+        "FatJet": "Fall17_V3_MC_EtaResolution_AK8PF",
     },
     "2018mc": {
-        "Jet": "Autumn18_V7_MC_EtaResolution_AK4PFchs",
-        "FatJet": "Autumn18_V7_MC_EtaResolution_AK8PFPuppi",
+        "Jet": "Autumn18_V7_MC_EtaResolution_AK4PF",
+        "FatJet": "Autumn18_V7_MC_EtaResolution_AK8PF",
     },
 
 }
@@ -52,20 +52,20 @@ jer_names_dict_eta = {
 jer_names_dict_phi = { 
 
     "2016preVFPmc": {
-        "Jet": "Summer20UL16APV_JRV3_MC_PhiResolution_AK4PFchs",
-        "FatJet": "Summer20UL16APV_JRV3_MC_PhiResolution_AK8PFPuppi",
+        "Jet": "Summer16_25nsV1_MC_PhiResolution_AK4PF",
+        "FatJet": "Summer16_25nsV1_MC_PhiResolution_AK8PF",
     },
     "2016postVFPmc": {
-        "Jet": "Summer20UL16_JRV3_MC_PhiResolution_AK4PFchs",
-        "FatJet": "Summer20UL16_JRV3_MC_PhiResolution_AK8PFPuppi",
+        "Jet": "Summer16_25nsV1_MC_PhiResolution_AK4PF",
+        "FatJet": "Summer16_25nsV1_MC_PhiResolution_AK8PF",
     },
     "2017mc": {
-        "Jet": "Summer19UL17_JRV3_MC_PhiResolution_AK4PFchs",
-        "FatJet": "Summer19UL17_JRV3_MC_PhiResolution_AK8PFPuppi",
+        "Jet": "Fall17_V3_MC_PhiResolution_AK4PF",
+        "FatJet": "Fall17_V3_MC_PhiResolution_AK8PF",
     },
     "2018mc": {
-        "Jet": "Autumn18_V7_MC_PhiResolution_AK4PFchs",
-        "FatJet": "Autumn18_V7_MC_PhiResolution_AK8PFPuppi",
+        "Jet": "Autumn18_V7_MC_PhiResolution_AK4PF",
+        "FatJet": "Autumn18_V7_MC_PhiResolution_AK8PF",
     },
 
 }

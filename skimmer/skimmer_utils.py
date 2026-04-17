@@ -1,4 +1,6 @@
 import awkward as ak
+import json
+import os
 import numpy as np
 import numba as nb
 from coffea.nanoevents.methods import vector
@@ -10,6 +12,142 @@ import cachetools
 from utils.awkward_array_utilities import as_type
 from utils.tree_maker.triggers import trigger_table as trigger_table_treemaker
 from utils.systematics import calc_jec_variation, calc_jer_variation, calc_jerc_variations_PFNano, calc_unclustered_met_variations_PFNano, calc_custom_svj_jes_variations_PFNano, apply_jercs_PFNano, apply_jecs_PFNano, propagate_jecs_to_MET_PFNano, propagate_jecs_to_METSig_PFNano
+
+# ---------------------------------------------------------------------------
+# Scouting JEC corrections via correctionlib (direct evaluation)
+# ---------------------------------------------------------------------------
+# Corrections are stored as correctionlib JSON files in the data/ directory,
+# named scouting_jec_corrections_{Jet|FatJet}_correctionlib.json.
+# The coffea file previously used here is no longer needed and can be deleted.
+#
+# To add corrections for a new year:
+#   1. Run create_scouting_jec_map.cpp to produce the correctionlib JSONs
+#   2. Add the year to _SCOUTING_JEC_JSON_FILES below
+# ---------------------------------------------------------------------------
+
+import correctionlib as _correctionlib
+
+# Resolve data/ directory absolutely at import time, independent of cwd
+_DATA_DIR = os.path.realpath(os.path.join(os.path.dirname(__file__), "../data"))
+
+_SCOUTING_JEC_JSON_FILES = {
+    # year (str) -> {collection -> correctionlib JSON path relative to _DATA_DIR}
+    # Matches the layout written by build_scouting_jet_factory():
+    #   data/custom_JEC_maps/{year}/scouting_jec_corrections_{year}_{coll}_correctionlib.json
+    "2017": {
+        "Jet":    os.path.join("custom_JEC_maps", "2017", "scouting_jec_corrections_2017_Jet_correctionlib.json"),
+        "FatJet": os.path.join("custom_JEC_maps", "2017", "scouting_jec_corrections_2017_FatJet_correctionlib.json"),
+    },
+    "2018": {
+        "Jet":    os.path.join("custom_JEC_maps", "2018", "scouting_jec_corrections_2018_Jet_correctionlib.json"),
+        "FatJet": os.path.join("custom_JEC_maps", "2018", "scouting_jec_corrections_2018_FatJet_correctionlib.json"),
+    },
+}
+
+# For years without dedicated corrections, fall back to this year.
+# TODO: replace with per-year corrections once derived.
+_SCOUTING_JEC_FALLBACK_YEAR = "2017"
+
+# Cache: corrections_year -> {"Jet": Correction, "FatJet": Correction}
+_scouting_jec_cache = {}
+
+
+def _load_scouting_jec_corrections(year):
+    """
+    Load (and cache) correctionlib Correction objects for scouting JECs.
+
+    Returns (corrections_dict, corrections_year) where corrections_dict maps
+    "Jet" -> correctionlib.Correction and "FatJet" -> correctionlib.Correction.
+    Falls back to _SCOUTING_JEC_FALLBACK_YEAR with a one-time warning if the
+    requested year has no dedicated corrections registered.
+    """
+    year = str(year)
+    if year in _SCOUTING_JEC_JSON_FILES:
+        corrections_year = year
+    else:
+        log.warning(
+            f"No scouting JEC corrections found for year {year}, "
+            f"falling back to {_SCOUTING_JEC_FALLBACK_YEAR} corrections. "
+            f"Add a '{year}' entry to _SCOUTING_JEC_JSON_FILES when available."
+        )
+        corrections_year = _SCOUTING_JEC_FALLBACK_YEAR
+
+    if corrections_year not in _scouting_jec_cache:
+        csets = {}
+        for coll, filename in _SCOUTING_JEC_JSON_FILES[corrections_year].items():
+            json_path = os.path.join(_DATA_DIR, filename)
+            if not os.path.exists(json_path):
+                raise FileNotFoundError(
+                    f"Scouting JEC correctionlib JSON not found: {json_path}"
+                )
+            cset = _correctionlib.CorrectionSet.from_file(json_path)
+            csets[coll] = cset[list(cset.keys())[0]]
+        _scouting_jec_cache[corrections_year] = csets
+
+    return _scouting_jec_cache[corrections_year], corrections_year
+
+
+def _apply_scouting_jec_to_collection(events, jet_coll, correction):
+    """
+    Apply a correctionlib Correction to one jet collection.
+
+    Only pt is scaled — mass, eta, phi are unchanged.
+
+    Saves:
+      {coll}_pt_raw_scouting    : raw scouting pt before any correction
+      {coll}_pt_scout_corrected : pt after scouting JEC only, before official JEC
+                                  (# TODO: remove once validated)
+      {coll}_pt                 : scouting-corrected pt for official JEC to build on
+    """
+    pt  = events[f"{jet_coll}_pt"]
+    eta = events[f"{jet_coll}_eta"]
+
+    # Save raw scouting pt before anything touches it
+    if f"{jet_coll}_pt_raw_scouting" not in events.fields:
+        events[f"{jet_coll}_pt_raw_scouting"] = ak.values_astype(pt, np.float32)
+
+    # Flatten to 1D for correctionlib, restore ragged structure after
+    counts    = ak.num(pt, axis=1)
+    pt_flat   = ak.to_numpy(ak.flatten(pt,  axis=1)).astype(np.float64)
+    eta_flat  = ak.to_numpy(ak.flatten(eta, axis=1)).astype(np.float64)
+    factors   = ak.unflatten(correction.evaluate(pt_flat, eta_flat), counts, axis=0)
+
+    corrected_pt = ak.values_astype(pt * factors, np.float32)
+
+    # TODO: remove this debug branch once scouting corrections are validated
+    events[f"{jet_coll}_pt_scout_corrected"] = corrected_pt
+
+    events[f"{jet_coll}_pt"] = corrected_pt
+    return events
+
+
+def apply_scouting_jec_corrections(events, year="2017"):
+    """
+    Apply scouting JEC residual corrections to Jet and FatJet pt.
+
+    Only pt is corrected (not mass). Branches saved per collection:
+      {coll}_pt_raw_scouting    : raw scouting pt before any correction
+      {coll}_pt_scout_corrected : pt after scouting JEC only       # TODO: remove
+      {coll}_pt                 : scouting-corrected pt
+
+    Call BEFORE apply_variation_pfnano. The official JEC will then save
+    {coll}_pt_uncorr (= post-scouting pt) and produce the final {coll}_pt.
+
+    Only runs on scouting events (detected by presence of 'ScoutMET_pt').
+    """
+    if "ScoutMET_pt" not in events.fields:
+        return events
+
+    csets, corrections_year = _load_scouting_jec_corrections(year)
+
+    if "Jet_pt" in events.fields:
+        events = _apply_scouting_jec_to_collection(events, "Jet", csets["Jet"])
+
+    if "FatJet_pt" in events.fields:
+        events = _apply_scouting_jec_to_collection(events, "FatJet", csets["FatJet"])
+
+    return events
+
 from utils.met_significance_factory_pfnano import MetSignificanceCalculator
 from utils.Logger import *
 
@@ -692,6 +830,26 @@ def apply_variation_pfnano(events, variation, year, run, pfnano_sys_file):
         variation = "nominal"
 
         
+    def _store_met_versions(
+        events_obj,
+        met_pt_all_corr,
+        met_phi_all_corr,
+        met_pt_uncorr,
+        met_phi_uncorr,
+        met_pt_official_only,
+        met_phi_official_only,
+    ):
+        # Keep a consistent set of MET snapshots for validation and diagnostics.
+        met_base = "ScoutMET" if "ScoutMET_pt" in events_obj.fields else "MET"
+        events_obj[f"{met_base}_pt"] = met_pt_all_corr
+        events_obj[f"{met_base}_phi"] = met_phi_all_corr
+        events_obj[f"{met_base}_pt_uncorr"] = met_pt_uncorr
+        events_obj[f"{met_base}_phi_uncorr"] = met_phi_uncorr
+        events_obj[f"{met_base}_pt_official_only"] = met_pt_official_only
+        events_obj[f"{met_base}_phi_official_only"] = met_phi_official_only
+        events_obj[f"{met_base}_pt_all_corr"] = met_pt_all_corr
+        events_obj[f"{met_base}_phi_all_corr"] = met_phi_all_corr
+
     if variation in ["nominal","jec_up", "jec_down", "jer_up", "jer_down","SVJjec_up", "SVJjec_down"] and pfnano_sys_file is not None:
         jerc_cache = {}  # Use empty dict instead of cachetools to force fresh calculations
         #load the JEC/JER variations from the pfnano file
@@ -724,12 +882,16 @@ def apply_variation_pfnano(events, variation, year, run, pfnano_sys_file):
                         jerc_cache,
                         ) 
 
-                    met_ptcorr, met_phicorr, met_pt_uncorr, met_phi_uncorr = corrected_MET_updated_JECs
-                    events["ScoutMET_pt"] = met_ptcorr
-                    events["ScoutMET_phi"] = met_phicorr
-                    # Save uncorrected MET values
-                    events["ScoutMET_pt_uncorr"] = met_pt_uncorr
-                    events["ScoutMET_phi_uncorr"] = met_phi_uncorr
+                    met_ptcorr, met_phicorr, met_pt_uncorr, met_phi_uncorr, met_pt_official, met_phi_official = corrected_MET_updated_JECs
+                    _store_met_versions(
+                        events,
+                        met_ptcorr,
+                        met_phicorr,
+                        met_pt_uncorr,
+                        met_phi_uncorr,
+                        met_pt_official,
+                        met_phi_official,
+                    )
 
                     #Here propagate the corrections to METSignificance
                     # met_sig_corr_nom = propagate_jecs_to_METSig_PFNano(events,
@@ -794,17 +956,16 @@ def apply_variation_pfnano(events, variation, year, run, pfnano_sys_file):
                             jerc_cache,
                             ) 
 
-                        met_ptcorr, met_phicorr, met_pt_uncorr, met_phi_uncorr = corrected_MET_updated_JECs
-                        # Check if this is scouting data (has ScoutMET) or regular NanoAOD (has MET)
-                        met_name = "ScoutMET_pt" if "ScoutMET_pt" in events.fields else "MET_pt"
-                        met_phi_name = "ScoutMET_phi" if "ScoutMET_phi" in events.fields else "MET_phi"
-                        met_uncorr_name = "ScoutMET_pt_uncorr" if "ScoutMET_pt" in events.fields else "MET_pt_uncorr"
-                        met_phi_uncorr_name = "ScoutMET_phi_uncorr" if "ScoutMET_phi" in events.fields else "MET_phi_uncorr"
-                        events[met_name] = met_ptcorr
-                        events[met_phi_name] = met_phicorr
-                        # Save uncorrected MET values
-                        events[met_uncorr_name] = met_pt_uncorr
-                        events[met_phi_uncorr_name] = met_phi_uncorr
+                        met_ptcorr, met_phicorr, met_pt_uncorr, met_phi_uncorr, met_pt_official, met_phi_official = corrected_MET_updated_JECs
+                        _store_met_versions(
+                            events,
+                            met_ptcorr,
+                            met_phicorr,
+                            met_pt_uncorr,
+                            met_phi_uncorr,
+                            met_pt_official,
+                            met_phi_official,
+                        )
 
                     #unpack corrected_JERC_jets
                     jerc_corr_pt, jerc_corr_eta, jerc_corr_phi, jerc_corr_mass, jerc_pt_uncorr, jerc_mass_uncorr = corrected_JERC_jets
@@ -865,12 +1026,16 @@ def apply_variation_pfnano(events, variation, year, run, pfnano_sys_file):
                             jerc_cache,
                             ) 
 
-                        met_ptcorr, met_phicorr, met_pt_uncorr, met_phi_uncorr = corrected_MET_updated_JECs
-                        events["ScoutMET_pt"] = met_ptcorr
-                        events["ScoutMET_phi"] = met_phicorr
-                        # Save uncorrected MET values
-                        events["ScoutMET_pt_uncorr"] = met_pt_uncorr
-                        events["ScoutMET_phi_uncorr"] = met_phi_uncorr
+                        met_ptcorr, met_phicorr, met_pt_uncorr, met_phi_uncorr, met_pt_official, met_phi_official = corrected_MET_updated_JECs
+                        _store_met_versions(
+                            events,
+                            met_ptcorr,
+                            met_phicorr,
+                            met_pt_uncorr,
+                            met_phi_uncorr,
+                            met_pt_official,
+                            met_phi_official,
+                        )
 
                         #Here propagate the corrections to METSignificance
                         # met_sig_corr_nom = propagate_jecs_to_METSig_PFNano(events,
@@ -934,16 +1099,17 @@ def apply_variation_pfnano(events, variation, year, run, pfnano_sys_file):
                 
                     #add the MET corrections, here correct MET only if the variation is JEC (not JER)
                     if (radius == 4) and (variation in ["jec_up", "jec_down", "SVJjec_up", "SVJjec_down"]):
-                        # Check if this is scouting data (has ScoutMET) or regular NanoAOD (has MET)
-                        met_name = "ScoutMET_pt" if "ScoutMET_pt" in events.fields else "MET_pt"
-                        met_phi_name = "ScoutMET_phi" if "ScoutMET_phi" in events.fields else "MET_phi"
-                        met_uncorr_name = "ScoutMET_pt_uncorr" if "ScoutMET_pt" in events.fields else "MET_pt_uncorr"
-                        met_phi_uncorr_name = "ScoutMET_phi_uncorr" if "ScoutMET_phi" in events.fields else "MET_phi_uncorr"
-                        events[met_name] = met_ptcorr
-                        events[met_phi_name] = met_phicorr
-                        # Save uncorrected MET values
-                        events[met_uncorr_name] = met_pt_uncorr
-                        events[met_phi_uncorr_name] = met_phi_uncorr
+                        # For variation branches where propagate_jecs_to_MET_PFNano is not
+                        # the direct source, keep "official_only" equal to the corrected value.
+                        _store_met_versions(
+                            events,
+                            met_ptcorr,
+                            met_phicorr,
+                            met_pt_uncorr,
+                            met_phi_uncorr,
+                            met_ptcorr,
+                            met_phicorr,
+                        )
 
                         #Here propagate the corrections to METSignificance
                         #CZZ: MET must come from jerc varied collections, otherwise nominal when running the unclustered energy variation

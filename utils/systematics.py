@@ -160,7 +160,8 @@ def make_jets_for_jerc(events,jet_coll, event_rho, correction_key):
             jets["pt_raw"] = (1 - events[raw_factor_field])*events[f"{jet_coll}_pt"]
             jets["mass_raw"] = (1 - events[raw_factor_field])*events[f"{jet_coll}_mass"]
         else:
-            # Scouting data: assume jets are already at raw level or use pt/mass as-is
+            # Scouting data: pt is already scouting-JEC-corrected; use it as pt_raw so
+            # the official JEC is applied on top of the scouting correction.
             jets["pt_raw"] = events[f"{jet_coll}_pt"]
             jets["mass_raw"] = events[f"{jet_coll}_mass"]
         jets["event_rho"] = ak.broadcast_arrays(event_rho, events[f"{jet_coll}_pt"])[0]
@@ -455,8 +456,16 @@ def propagate_jecs_to_MET_PFNano(
     jet_pt_corr_nom  = jets_corrected_nom.pt
     jet_phi_corr_nom  = events[f"{jet_coll}_phi"]
 
-    #extract raw jet pt
-    jet_pt_raw = jets_corrected_nom.pt_raw
+    # The factory raw input is scouting-corrected pt for scouting events.
+    # Keep both baselines so we can save two corrected MET flavors:
+    # - official_only : official JEC delta on top of scouting-corrected jets
+    # - all_corr      : full delta from truly raw scouting pt to final corrected pt
+    jet_pt_raw_official_only = jets_corrected_nom.pt_raw
+    pt_raw_scouting_field = f"{jet_coll}_pt_raw_scouting"
+    if pt_raw_scouting_field in events.fields:
+        jet_pt_raw_all_corr = events[pt_raw_scouting_field]
+    else:
+        jet_pt_raw_all_corr = jet_pt_raw_official_only
 
     # Get raw MET - check for RawMET (standard) or ScoutMET (scouting)
     if "RawMET_pt" in events.fields:
@@ -469,10 +478,30 @@ def propagate_jecs_to_MET_PFNano(
         met_pt_raw = events["MET_pt"]
         met_phi_raw = events["MET_phi"]
 
-    corr_t1_met =  update_met_t1_corr(met_pt_raw, met_phi_raw, jet_pt_corr_nom, jet_phi_corr_nom, jet_pt_raw)
+    corr_t1_met_official_only = update_met_t1_corr(
+        met_pt_raw,
+        met_phi_raw,
+        jet_pt_corr_nom,
+        jet_phi_corr_nom,
+        jet_pt_raw_official_only,
+    )
+    corr_t1_met_all_corr = update_met_t1_corr(
+        met_pt_raw,
+        met_phi_raw,
+        jet_pt_corr_nom,
+        jet_phi_corr_nom,
+        jet_pt_raw_all_corr,
+    )
     
     # Return corrected MET and uncorrected (raw) MET for saving
-    return corr_t1_met.pt, corr_t1_met.phi, met_pt_raw, met_phi_raw
+    return (
+        corr_t1_met_all_corr.pt,
+        corr_t1_met_all_corr.phi,
+        met_pt_raw,
+        met_phi_raw,
+        corr_t1_met_official_only.pt,
+        corr_t1_met_official_only.phi,
+    )
 
 
 
@@ -607,7 +636,11 @@ def calc_jerc_variations_PFNano(
     phi_corr = eval(f"jets_corrected.{access_jerc_corr_jets}.{direction}.phi")
     mass_corr = eval(f"jets_corrected.{access_jerc_corr_jets}.{direction}.mass")
 
-    pt_raw_var = eval(f"jets_corrected.{access_jerc_corr_jets}.{direction}.pt_raw")
+    # pt_raw_var is the baseline pt from which the varied correction is computed.
+    # Use truly raw pt (before scouting JEC) when available so the full delta is in T1.
+    _pt_raw_var_factory = eval(f"jets_corrected.{access_jerc_corr_jets}.{direction}.pt_raw")
+    pt_raw_scouting_field = f"{jet_coll}_pt_raw_scouting"
+    pt_raw_var = events[pt_raw_scouting_field] if pt_raw_scouting_field in events.fields else _pt_raw_var_factory
     
     # Extract uncorrected values to save
     pt_uncorr = jets_input.pt_raw
@@ -676,8 +709,12 @@ def calc_unclustered_met_variations_PFNano(
     jet_pt_corr_nom  = jets_corrected_nom.pt
     jet_phi_corr_nom  = events[f"{jet_coll}_phi"]
 
-    #extract raw jet pt
-    jet_pt_raw = jets_corrected_nom.pt_raw
+    # Use truly raw pt (before scouting JEC) as baseline for T1 formula when available
+    pt_raw_scouting_field = f"{jet_coll}_pt_raw_scouting"
+    if pt_raw_scouting_field in events.fields:
+        jet_pt_raw = events[pt_raw_scouting_field]
+    else:
+        jet_pt_raw = jets_corrected_nom.pt_raw
 
     # Get raw MET - check for RawMET (standard) or ScoutMET (scouting)
     if "RawMET_pt" in events.fields:

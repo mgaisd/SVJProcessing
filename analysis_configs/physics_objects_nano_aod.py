@@ -136,10 +136,10 @@ def get_jet_pf_cands(events, jet_collection_name, pf_cands_collection_name, addi
         variables = ["pt", "mass", "eta", "phi", "charge", "pdgId"]
         variables += additional_variables
 
-        #check if first element of jet_pfcands_idx is an integer
-        if not isinstance(jet_pfcands_idx[0][0], int):
-            #convert to integer
-            jet_pfcands_idx = ak.values_astype(jet_pfcands_idx, 'int64')
+        # #check if first element of jet_pfcands_idx is an integer
+        # if not isinstance(jet_pfcands_idx[0][0], int): # can cause crashes if first event has no jets
+        #convert to integer
+        jet_pfcands_idx = ak.values_astype(jet_pfcands_idx, 'int64')
 
         pf_cands = ak.zip(
             {

@@ -25,6 +25,7 @@ class Skimmer(processor.ProcessorABC):
             weight_variations=[],
             nano_aod=False,
             pfnano_corr_file=None,
+            apply_scouting_jec=True,
         ):
 
         self.process_function = process_function
@@ -32,6 +33,7 @@ class Skimmer(processor.ProcessorABC):
         self.weight_variations = weight_variations
         self.nano_aod = nano_aod
         self.pfnano_corr_file = pfnano_corr_file
+        self.apply_scouting_jec = apply_scouting_jec
         self.is_mc = "mc" if is_mc else "data"
         self.year = year
 
@@ -39,6 +41,10 @@ class Skimmer(processor.ProcessorABC):
 
         cut_flow = {}
         skimmer_utils.update_cut_flow(cut_flow, "Initial", events)
+
+        # Apply scouting JEC corrections to Jet and FatJet before any official JECs/variations
+        if self.apply_scouting_jec:
+            events = skimmer_utils.apply_scouting_jec_corrections(events, year=str(self.year))
 
         if skimmer_utils.is_mc(events):
             # Calculate and store the weight variations
@@ -217,6 +223,12 @@ def add_coffea_args(parser):
         action='store',
         default=None,
     )
+    parser.add_argument(
+        '--disable_scouting_jec',
+        help='Disable custom scouting JEC residual corrections before official PFNano variations',
+        default=False,
+        action='store_true',
+    )
 
     parser.add_argument(
         '-pn_tagger', '--pn_tagger',       
@@ -338,6 +350,8 @@ def __prepare_uproot_job_kwargs_from_coffea_args(args):
         skip_bad_files=args.skip_bad_files,
         port=args.port,
     ))
+    # coffea's deprecated run_uproot_job forwards Runner options via executor_args
+    executor_args["xrootdtimeout"] = 300 # Increase xrootd timeout to avoid timeouts when running on many files
 
     if args.skim_source or args.nano_aod:
         treename = "Events"
@@ -364,6 +378,7 @@ def __prepare_uproot_job_kwargs_from_coffea_args(args):
             weight_variations=weight_variations,
             nano_aod=args.nano_aod or args.nano_aod_scouting,
             pfnano_corr_file=args.pfnano_corrections_file,
+            apply_scouting_jec=not args.disable_scouting_jec,
         ),
         "executor": executor,
         "executor_args": executor_args,

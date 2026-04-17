@@ -47,6 +47,7 @@ struct JetMatch {
 struct Config {
     std::vector<std::string> input_files;
     std::string output_dir;
+    std::string year;
     std::string jet_type;  // "Jet" or "FatJet"
     float dr_threshold;
     float pt_min;
@@ -319,137 +320,230 @@ void processFileBoth(
     file->Close();
 }
 
-// Save results to JSON
+// Save results as correctionlib schema v2 JSON with nested binning nodes.
+//
+// Output format (loadable directly with correctionlib.CorrectionSet.from_file):
+//
+//   {
+//     "schema_version": 2,
+//     "corrections": [{
+//       "name": "scouting_jec_<JetType>",
+//       "inputs": [{"name":"JetPt","type":"real"}, {"name":"JetEta","type":"real"}],
+//       "output": {"name":"factor","type":"real"},
+//       "data": {
+//         "nodetype": "binning",   // outer: bins on JetPt
+//         "input": "JetPt",
+//         "edges": [...],
+//         "flow": "clamp",
+//         "content": [             // one inner node per pt bin
+//           {
+//             "nodetype": "binning",
+//             "input": "JetEta",
+//             "edges": [...],
+//             "flow": "clamp",
+//             "content": [1.05, 1.03, ...]   // one value per eta bin
+//           },
+//           ...
+//         ]
+//       }
+//     }]
+//   }
+//
+// Bins with fewer than min_count entries are set to 1.0 (no correction).
 void saveJSON(const Config& config, TH2D* h_sum, TH2D* h_sum_sq, TH2D* h_counts,
               long n_total, long n_rejected_neg, long n_rejected_outliers)
 {
-    std::string json_file = config.output_dir + "/scouting_jec_corrections_" + config.jet_type + ".json";
+    // Output filename matches the correctionlib convention used by
+    // corrections_pfnano_coffea.py and skimmer_utils.py.
+    std::string json_file = config.output_dir + "/scouting_jec_corrections_"
+                            + config.year + "_" + config.jet_type + "_correctionlib.json";
     std::ofstream out(json_file);
-    
+
     if (!out.is_open()) {
         std::cerr << "Error: Cannot create JSON file: " << json_file << std::endl;
         return;
     }
-    
+
     out << std::fixed << std::setprecision(6);
+
+    const int    min_count    = 10;
+    const int    n_pt         = h_sum->GetNbinsX();
+    const int    n_eta        = h_sum->GetNbinsY();
+    std::string  corr_name    = "scouting_jec_" + config.jet_type;
+
+    // ------------------------------------------------------------------
+    // Pre-compute correction values so the writing loop below is clean.
+    // corrections[ix][iy] corresponds to ROOT histogram bin (ix+1, iy+1).
+    // Bins with insufficient stats are left at 1.0 (no correction).
+    // ------------------------------------------------------------------
+    std::vector<std::vector<double>> corrections(n_pt, std::vector<double>(n_eta, 1.0));
+    for (int ix = 0; ix < n_pt; ++ix) {
+        for (int iy = 0; iy < n_eta; ++iy) {
+            double sum   = h_sum->GetBinContent(ix + 1, iy + 1);
+            double count = h_counts->GetBinContent(ix + 1, iy + 1);
+            if (count >= min_count) {
+                double corr = sum / count;
+                // Sanity clamp: treat extreme values as no-correction
+                corrections[ix][iy] = (corr > 0.1 && corr < 10.0) ? corr : 1.0;
+            }
+        }
+    }
+
+    // ------------------------------------------------------------------
+    // Helper: write a ROOT axis's bin edges as a JSON array inline.
+    // ------------------------------------------------------------------
+    auto write_edges = [&](TAxis* axis, int n_bins) {
+        out << "[";
+        for (int i = 1; i <= n_bins + 1; ++i) {
+            out << axis->GetBinLowEdge(i);
+            if (i <= n_bins) out << ", ";
+        }
+        out << "]";
+    };
+
+    // ------------------------------------------------------------------
+    // Write correctionlib schema v2 JSON
+    // ------------------------------------------------------------------
     out << "{\n";
-    out << "  \"jet_type\": \"" << config.jet_type << "\",\n";
-    out << "  \"dr_threshold\": " << config.dr_threshold << ",\n";
-    out << "  \"pt_min\": " << config.pt_min << ",\n";
-    
-    // Write bin edges
-    out << "  \"pt_bins\": [";
-    for (int i = 1; i <= h_sum->GetNbinsX() + 1; ++i) {
-        out << h_sum->GetXaxis()->GetBinLowEdge(i);
-        if (i <= h_sum->GetNbinsX()) out << ", ";
-    }
-    out << "],\n";
-    
-    out << "  \"eta_bins\": [";
-    for (int i = 1; i <= h_sum->GetNbinsY() + 1; ++i) {
-        out << h_sum->GetYaxis()->GetBinLowEdge(i);
-        if (i <= h_sum->GetNbinsY()) out << ", ";
-    }
-    out << "],\n";
-    
-    // Calculate corrections and uncertainties
-    const int min_count = 10;
+    out << "  \"schema_version\": 2,\n";
+    out << "  \"description\": \"Scouting JEC residual corrections for "
+        << config.jet_type << ", derived from scouting/offline jet matching.\",\n";
     out << "  \"corrections\": [\n";
-    for (int ix = 1; ix <= h_sum->GetNbinsX(); ++ix) {
-        out << "    [";
-        for (int iy = 1; iy <= h_sum->GetNbinsY(); ++iy) {
-            double sum = h_sum->GetBinContent(ix, iy);
-            double count = h_counts->GetBinContent(ix, iy);
-            double corr = 1.0;
-            if (count >= min_count) {
-                corr = sum / count;
-                if (corr <= 0.1 || corr >= 10.0) corr = 1.0;
-            }
-            out << corr;
-            if (iy < h_sum->GetNbinsY()) out << ", ";
-        }
-        out << "]";
-        if (ix < h_sum->GetNbinsX()) out << ",";
-        out << "\n";
-    }
-    out << "  ],\n";
+    out << "    {\n";
+    out << "      \"name\": \"" << corr_name << "\",\n";
+    out << "      \"version\": 1,\n";
+    out << "      \"description\": \"Scouting JEC correction for " << config.jet_type
+        << ". dR<" << config.dr_threshold
+        << ", pt_min=" << config.pt_min << " GeV.\",\n";
+    out << "      \"inputs\": [\n";
+    out << "        {\"name\": \"JetPt\",  \"type\": \"real\","
+        << " \"description\": \"Scouting jet pT (GeV)\"},\n";
+    out << "        {\"name\": \"JetEta\", \"type\": \"real\","
+        << " \"description\": \"Scouting jet eta\"}\n";
+    out << "      ],\n";
+    out << "      \"output\": {\"name\": \"factor\", \"type\": \"real\","
+        << " \"description\": \"JEC scale factor (offline/scouting)\"},\n";
 
-    out << "  \"uncertainties\": [\n";
-    for (int ix = 1; ix <= h_sum->GetNbinsX(); ++ix) {
-        out << "    [";
-        for (int iy = 1; iy <= h_sum->GetNbinsY(); ++iy) {
-            double sum = h_sum->GetBinContent(ix, iy);
-            double sum_sq = h_sum_sq->GetBinContent(ix, iy);
-            double count = h_counts->GetBinContent(ix, iy);
-            double unc = 0.0;
-            if (count >= min_count) {
-                if (count > 1) {
-                    double mean = sum / count;
-                    double mean_sq = sum_sq / count;
-                    double variance = mean_sq - mean * mean;
-                    unc = (variance > 0) ? std::sqrt(variance) : 0.0;
-                }
-            }
-            out << unc;
-            if (iy < h_sum->GetNbinsY()) out << ", ";
-        }
-        out << "]";
-        if (ix < h_sum->GetNbinsX()) out << ",";
-        out << "\n";
-    }
-    out << "  ],\n";
+    // Outer binning node: bins on JetPt
+    out << "      \"data\": {\n";
+    out << "        \"nodetype\": \"binning\",\n";
+    out << "        \"input\": \"JetPt\",\n";
+    out << "        \"edges\": ";
+    write_edges(h_sum->GetXaxis(), n_pt);
+    out << ",\n";
+    out << "        \"flow\": \"clamp\",\n";
 
-    out << "  \"stat_uncertainties\": [\n";
-    for (int ix = 1; ix <= h_sum->GetNbinsX(); ++ix) {
-        out << "    [";
-        for (int iy = 1; iy <= h_sum->GetNbinsY(); ++iy) {
-            double sum = h_sum->GetBinContent(ix, iy);
-            double sum_sq = h_sum_sq->GetBinContent(ix, iy);
-            double count = h_counts->GetBinContent(ix, iy);
-            double stat_unc = 0.0;
-            if (count >= min_count) {
-                if (count > 1) {
-                    double mean = sum / count;
-                    double mean_sq = sum_sq / count;
-                    double variance = mean_sq - mean * mean;
-                    double unc = (variance > 0) ? std::sqrt(variance) : 0.0;
-                    stat_unc = unc / std::sqrt(count);
-                }
-            }
-            out << stat_unc;
-            if (iy < h_sum->GetNbinsY()) out << ", ";
+    // content: one inner binning node per pt bin, each binning on JetEta
+    out << "        \"content\": [\n";
+    for (int ix = 0; ix < n_pt; ++ix) {
+        out << "          {\n";
+        out << "            \"nodetype\": \"binning\",\n";
+        out << "            \"input\": \"JetEta\",\n";
+        out << "            \"edges\": ";
+        write_edges(h_sum->GetYaxis(), n_eta);
+        out << ",\n";
+        out << "            \"flow\": \"clamp\",\n";
+        out << "            \"content\": [";
+        for (int iy = 0; iy < n_eta; ++iy) {
+            out << corrections[ix][iy];
+            if (iy < n_eta - 1) out << ", ";
         }
-        out << "]";
-        if (ix < h_sum->GetNbinsX()) out << ",";
+        out << "]\n";
+        out << "          }";
+        if (ix < n_pt - 1) out << ",";
         out << "\n";
     }
-    out << "  ],\n";
-    
-    out << "  \"counts\": [\n";
-    for (int ix = 1; ix <= h_sum->GetNbinsX(); ++ix) {
-        out << "    [";
-        for (int iy = 1; iy <= h_sum->GetNbinsY(); ++iy) {
-            out << (int)h_counts->GetBinContent(ix, iy);
-            if (iy < h_sum->GetNbinsY()) out << ", ";
-        }
-        out << "]";
-        if (ix < h_sum->GetNbinsX()) out << ",";
-        out << "\n";
-    }
-    out << "  ],\n";
-    
-    // Statistics
-    long n_accepted = n_total - n_rejected_neg - n_rejected_outliers;
-    out << "  \"statistics\": {\n";
-    out << "    \"total_matched\": " << n_total << ",\n";
-    out << "    \"rejected_negative_pt\": " << n_rejected_neg << ",\n";
-    out << "    \"rejected_outliers\": " << n_rejected_outliers << ",\n";
-    out << "    \"accepted\": " << n_accepted << "\n";
-    out << "  }\n";
+    out << "        ]\n";   // end content
+    out << "      }\n";     // end data
+    out << "    }\n";       // end correction object
+    out << "  ]\n";         // end corrections array
     out << "}\n";
-    
+
     out.close();
-    std::cout << "Saved JSON: " << json_file << std::endl;
+
+    long n_accepted = n_total - n_rejected_neg - n_rejected_outliers;
+    std::cout << "Saved correctionlib JSON: " << json_file << "\n";
+    std::cout << "  Correction name: " << corr_name << "\n";
+    std::cout << "  Bins: " << n_pt << " pt x " << n_eta << " eta\n";
+    std::cout << "  Jets accepted: " << n_accepted << " / " << n_total << "\n";
+
+    // ------------------------------------------------------------------
+    // Write flat diagnostics JSON for the plotting script
+    // ------------------------------------------------------------------
+    std::string diag_file = config.output_dir + "/scouting_jec_diagnostics_"
+                            + config.year + "_" + config.jet_type + ".json";
+    std::ofstream diag(diag_file);
+    if (!diag.is_open()) {
+        std::cerr << "Warning: Cannot create diagnostics file: " << diag_file << "\n";
+        return;
+    }
+    diag << std::fixed << std::setprecision(6);
+
+    // Collect bin edges
+    std::vector<double> pt_edges, eta_edges;
+    for (int i = 1; i <= n_pt + 1; ++i) pt_edges.push_back(h_sum->GetXaxis()->GetBinLowEdge(i));
+    for (int i = 1; i <= n_eta + 1; ++i) eta_edges.push_back(h_sum->GetYaxis()->GetBinLowEdge(i));
+
+    // Compute uncertainties and stat_uncertainties
+    std::vector<std::vector<double>> uncertainties(n_pt, std::vector<double>(n_eta, 0.0));
+    std::vector<std::vector<double>> stat_uncertainties(n_pt, std::vector<double>(n_eta, 0.0));
+    std::vector<std::vector<double>> counts_arr(n_pt, std::vector<double>(n_eta, 0.0));
+    for (int ix = 0; ix < n_pt; ++ix) {
+        for (int iy = 0; iy < n_eta; ++iy) {
+            double sum    = h_sum->GetBinContent(ix + 1, iy + 1);
+            double sum_sq = h_sum_sq->GetBinContent(ix + 1, iy + 1);
+            double count  = h_counts->GetBinContent(ix + 1, iy + 1);
+            counts_arr[ix][iy] = count;
+            if (count >= 2) {
+                double mean   = sum / count;
+                double var    = (sum_sq / count) - mean * mean;
+                double stddev = (var > 0) ? std::sqrt(var) : 0.0;
+                uncertainties[ix][iy]      = stddev;
+                stat_uncertainties[ix][iy] = stddev / std::sqrt(count);
+            }
+        }
+    }
+
+    auto write_1d = [&](const std::vector<double>& v) {
+        diag << "[";
+        for (size_t k = 0; k < v.size(); ++k) {
+            diag << v[k];
+            if (k + 1 < v.size()) diag << ", ";
+        }
+        diag << "]";
+    };
+    auto write_2d = [&](const std::vector<std::vector<double>>& arr) {
+        diag << "[\n";
+        for (int ix = 0; ix < n_pt; ++ix) {
+            diag << "    [";
+            for (int iy = 0; iy < n_eta; ++iy) {
+                diag << arr[ix][iy];
+                if (iy < n_eta - 1) diag << ", ";
+            }
+            diag << "]";
+            if (ix < n_pt - 1) diag << ",";
+            diag << "\n";
+        }
+        diag << "  ]";
+    };
+
+    diag << "{\n";
+    diag << "  \"jet_type\": \"" << config.jet_type << "\",\n";
+    diag << "  \"pt_bins\": ";  write_1d(pt_edges);  diag << ",\n";
+    diag << "  \"eta_bins\": "; write_1d(eta_edges); diag << ",\n";
+    diag << "  \"corrections\": ";        write_2d(corrections);        diag << ",\n";
+    diag << "  \"uncertainties\": ";      write_2d(uncertainties);      diag << ",\n";
+    diag << "  \"stat_uncertainties\": "; write_2d(stat_uncertainties); diag << ",\n";
+    diag << "  \"counts\": ";             write_2d(counts_arr);         diag << ",\n";
+    diag << "  \"statistics\": {\n";
+    diag << "    \"total_matched\": "        << n_total            << ",\n";
+    diag << "    \"rejected_negative_pt\": " << n_rejected_neg     << ",\n";
+    diag << "    \"rejected_outliers\": "    << n_rejected_outliers << ",\n";
+    diag << "    \"accepted\": "             << n_accepted          << "\n";
+    diag << "  }\n";
+    diag << "}\n";
+    diag.close();
+    std::cout << "Saved diagnostics JSON: " << diag_file << "\n";
 }
 
 int main(int argc, char** argv) {
@@ -461,22 +555,58 @@ int main(int argc, char** argv) {
     std::cout << "=============================================================\n";
     
     if (argc < 2) {
-        std::cerr << "Usage: " << argv[0] << " <file1.root> [file2.root ...]\n";
+        std::cerr << "Usage: " << argv[0] << " [--output-dir <dir>] <file1.root> [file2.root ...]\n";
+        std::cerr << "       " << argv[0] << " [--output-dir <dir>] --filelist <filelist.txt>\n";
         std::cerr << "  Processes both Jet (AK4) and FatJet (AK8) in a single pass\n";
         return 1;
     }
     
-    // Get input files
+    // Parse arguments
+    std::string output_dir = "test";
+    std::string year = "";
     std::vector<std::string> input_files;
     for (int i = 1; i < argc; ++i) {
-        input_files.push_back(argv[i]);
+        if (std::string(argv[i]) == "--output-dir") {
+            if (i + 1 >= argc) {
+                std::cerr << "Error: --output-dir requires a directory argument\n";
+                return 1;
+            }
+            output_dir = argv[++i];
+        } else if (std::string(argv[i]) == "--year") {
+            if (i + 1 >= argc) {
+                std::cerr << "Error: --year requires an argument\n";
+                return 1;
+            }
+            year = argv[++i];
+        } else if (std::string(argv[i]) == "--filelist") {
+            if (i + 1 >= argc) {
+                std::cerr << "Error: --filelist requires a file path argument\n";
+                return 1;
+            }
+            std::ifstream filelist(argv[++i]);
+            if (!filelist.is_open()) {
+                std::cerr << "Error: Cannot open filelist: " << argv[i] << "\n";
+                return 1;
+            }
+            std::string line;
+            while (std::getline(filelist, line)) {
+                if (!line.empty()) input_files.push_back(line);
+            }
+        } else {
+            input_files.push_back(argv[i]);
+        }
     }
     
+    if (year.empty()) {
+        std::cerr << "Warning: --year not specified, output files will not include year\n";
+    }
+
     // Configuration for AK4 (Jet)
     Config config_jet;
     config_jet.jet_type = "Jet";
+    config_jet.year = year;
     config_jet.dr_threshold = 0.15;
-    config_jet.output_dir = "test";
+    config_jet.output_dir = output_dir;
     config_jet.pt_min = 15.0;
     config_jet.pt_min_bin = 15.0;
     config_jet.pt_max_bin = 2000.0;
@@ -490,8 +620,9 @@ int main(int argc, char** argv) {
     // Configuration for AK8 (FatJet)
     Config config_fatjet;
     config_fatjet.jet_type = "FatJet";
+    config_fatjet.year = year;
     config_fatjet.dr_threshold = 0.15;
-    config_fatjet.output_dir = "test";
+    config_fatjet.output_dir = output_dir;
     config_fatjet.pt_min = 150.0;
     config_fatjet.pt_min_bin = 150.0;
     config_fatjet.pt_max_bin = 2000.0;
@@ -549,8 +680,8 @@ int main(int argc, char** argv) {
     std::cout << "Processing files (both Jet and FatJet)...\n";
     for (size_t i = 0; i < input_files.size(); ++i) {
         double pct = 100.0 * (i + 1) / input_files.size();
-        std::cout << "  File " << (i+1) << "/" << input_files.size() 
-                  << " (" << std::fixed << std::setprecision(1) << pct << "%)\n";
+        std::cout << "\r  File " << (i+1) << "/" << input_files.size()
+                  << " (" << std::fixed << std::setprecision(1) << pct << "%)   " << std::flush;
         
         // Process BOTH jet types from same file in one pass
         processFileBoth(input_files[i],
@@ -559,6 +690,7 @@ int main(int argc, char** argv) {
                        config_fatjet, h_sum_fatjet, h_sum_sq_fatjet, h_counts_fatjet,
                        n_total_fatjets, n_rejected_neg_fatjet, n_rejected_outliers_fatjet);
     }
+    std::cout << "\n";
     
     // Print statistics for AK4 (Jet)
     std::cout << "\n============================================\n";
@@ -580,7 +712,8 @@ int main(int argc, char** argv) {
 
     
     // Save ROOT histograms for AK4
-    std::string root_file_jet = config_jet.output_dir + "/scouting_jec_histograms_Jet.root";
+    std::string root_file_jet = config_jet.output_dir + "/scouting_jec_histograms_"
+                                 + config_jet.year + "_Jet.root";
     TFile* out_file_jet = new TFile(root_file_jet.c_str(), "RECREATE");
     h_sum_jet->Write("h_sum");
     h_sum_sq_jet->Write("h_sum_sq");
@@ -589,7 +722,8 @@ int main(int argc, char** argv) {
     std::cout << "\nSaved ROOT file: " << root_file_jet << std::endl;
     
     // Save ROOT histograms for AK8
-    std::string root_file_fatjet = config_fatjet.output_dir + "/scouting_jec_histograms_FatJet.root";
+    std::string root_file_fatjet = config_fatjet.output_dir + "/scouting_jec_histograms_"
+                                    + config_fatjet.year + "_FatJet.root";
     TFile* out_file_fatjet = new TFile(root_file_fatjet.c_str(), "RECREATE");
     h_sum_fatjet->Write("h_sum");
     h_sum_sq_fatjet->Write("h_sum_sq");

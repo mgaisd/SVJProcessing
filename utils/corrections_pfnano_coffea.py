@@ -31,7 +31,6 @@ def __get_arguments():
         action='store_true',
     )
 
-
     parser.add_argument(
         '-pu', '--include_pu_corrections',
         help='Set True if input files are (PF)NanoAOD files', 

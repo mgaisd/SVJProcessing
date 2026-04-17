@@ -11,19 +11,19 @@ from analysis_configs import sequences_s_channel_scouting as sequences
 def process(events, cut_flow, year, primary_dataset="", pn_tagger=False, **kwargs):
     """SVJ s-channel scouting pre-selection."""
 
-    # # Trigger event selection
-    # triggers = getattr(trg, f"s_channel_scouting")
-    # events = skimmer_utils.apply_trigger_cut(events, triggers)
-    # skimmer_utils.update_cut_flow(cut_flow, "Trigger", events)
+    # Trigger event selection
+    triggers = getattr(trg, f"s_channel_scouting")
+    events = skimmer_utils.apply_trigger_cut(events, triggers)
+    skimmer_utils.update_cut_flow(cut_flow, "Trigger", events)
 
-    # Removing events with no jets first to avoid crashes
-    filter_njets = ak.count(events.FatJet_pt, axis=1) > 0
-    events = events[filter_njets]
-    
     # Good jet filters
-    if len(events) > 0:
+    if ak.count(events.FatJet_pt) != 0:
         events = sequences.apply_good_ak8_jet_filter(events)
     skimmer_utils.update_cut_flow(cut_flow, "GoodJetsAK8", events)
+
+    # Removing events with no jets to avoid crashes
+    filter_njets = ak.count(events.FatJet_pt, axis=1) > 0
+    events = events[filter_njets]
     
     # Adding JetsAK8_isGood branch already so that it can be used
     # in the rest of the pre-selection
@@ -36,27 +36,34 @@ def process(events, cut_flow, year, primary_dataset="", pn_tagger=False, **kwarg
         events = events[filter]
     skimmer_utils.update_cut_flow(cut_flow, "nJetsAK8Gt2", events)
 
+    # veto events with mini-isolated leptons (muons and electrons)
+    if len(events) != 0:
+        events = sequences.add_n_lepton_veto_branch(events)
+        events = sequences.apply_isolated_lepton_veto(events)
+
+    skimmer_utils.update_cut_flow(cut_flow, "IsolatedLeptonVeto", events)
 
 
-    # #apply RT filter (RT = MET over MT)
-    # if len(events) != 0:
-    #     jets = skimmer_utils.make_pt_eta_phi_mass_lorentz_vector(
-    #         pt=events.FatJet_pt[events.FatJet_isGood],
-    #         eta=events.FatJet_eta[events.FatJet_isGood],
-    #         phi=events.FatJet_phi[events.FatJet_isGood],
-    #         mass=events.FatJet_mass[events.FatJet_isGood],
-    #     )
-    #     met = skimmer_utils.make_pt_eta_phi_mass_lorentz_vector(
-    #         pt=events.ScoutMET_pt,
-    #         phi=events.ScoutMET_phi,
-    #     )
-    #     mt = event_vars.calculate_transverse_mass(jets, met)
-    #     rt = events.ScoutMET_pt / mt
-    #     filter_rt = rt > 0.15
-    #     filter_rt = as_type(filter_rt, bool)   #not needed
-    #     events = events[filter_rt]
+
+    #apply RT filter (RT = MET over MT)
+    if len(events) != 0:
+        jets = skimmer_utils.make_pt_eta_phi_mass_lorentz_vector(
+            pt=events.FatJet_pt[events.FatJet_isGood],
+            eta=events.FatJet_eta[events.FatJet_isGood],
+            phi=events.FatJet_phi[events.FatJet_isGood],
+            mass=events.FatJet_mass[events.FatJet_isGood],
+        )
+        met = skimmer_utils.make_pt_eta_phi_mass_lorentz_vector(
+            pt=events.ScoutMET_pt,
+            phi=events.ScoutMET_phi,
+        )
+        mt = event_vars.calculate_transverse_mass(jets, met)
+        rt = events.ScoutMET_pt / mt
+        filter_rt = rt > 0.15
+        filter_rt = as_type(filter_rt, bool)   #not needed
+        events = events[filter_rt]
     
-    # skimmer_utils.update_cut_flow(cut_flow, "RT selection", events)
+    skimmer_utils.update_cut_flow(cut_flow, "RT selection", events)
 
 
     #apply DeltaEta filter (not applied because it is used as a control region)
@@ -75,54 +82,55 @@ def process(events, cut_flow, year, primary_dataset="", pn_tagger=False, **kwarg
     # skimmer_utils.update_cut_flow(cut_flow, "DeltaEtaj0j1 selection", events)
 
     #apply MT selection
-    # if len(events) != 0:
-    #     jets = skimmer_utils.make_pt_eta_phi_mass_lorentz_vector(
-    #         pt=events.FatJet_pt[events.FatJet_isGood],
-    #         eta=events.FatJet_eta[events.FatJet_isGood],
-    #         phi=events.FatJet_phi[events.FatJet_isGood],
-    #         mass=events.FatJet_mass[events.FatJet_isGood],
-    #     )
-    #     met = skimmer_utils.make_pt_eta_phi_mass_lorentz_vector(
-    #         pt=events.ScoutMET_pt,
-    #         phi=events.ScoutMET_phi,
-    #     )
-    #     mt = event_vars.calculate_transverse_mass(jets, met)
-    #     filter_mt = mt > 650
-    #     filter_mt = as_type(filter_mt, bool)
-    #     events = events[filter_mt]
+    if len(events) != 0:
+        jets = skimmer_utils.make_pt_eta_phi_mass_lorentz_vector(
+            pt=events.FatJet_pt[events.FatJet_isGood],
+            eta=events.FatJet_eta[events.FatJet_isGood],
+            phi=events.FatJet_phi[events.FatJet_isGood],
+            mass=events.FatJet_mass[events.FatJet_isGood],
+        )
+        met = skimmer_utils.make_pt_eta_phi_mass_lorentz_vector(
+            pt=events.ScoutMET_pt,
+            phi=events.ScoutMET_phi,
+        )
+        mt = event_vars.calculate_transverse_mass(jets, met)
+        filter_mt = mt > 650
+        filter_mt = as_type(filter_mt, bool)
+        events = events[filter_mt]
     
-    # skimmer_utils.update_cut_flow(cut_flow, "MT selection", events)
+    skimmer_utils.update_cut_flow(cut_flow, "MT selection", events)
 
-    # #CZZ: MET filter event: MISSING
+    #CZZ: MET filter event: MISSING (might not exist in scouting)
 
-    # #CZZ: Phi spike filter: MISSING
+    #CZZ: Phi spike filter: MISSING
 
-    # #CZZ: HEM issue filter: MISSING 
+    #CZZ: HEM issue filter: MISSING (apply to random events with same fraction as the lumi affected by HEM issue in data)
 
 
-    # # Delta phi min cut
-    # if len(events) != 0:
-    #     # If needed because the selection crashes due to the special ak type
-    #     met = skimmer_utils.make_pt_eta_phi_mass_lorentz_vector(
-    #         pt=events.ScoutMET_pt,
-    #         phi=events.ScoutMET_phi,
-    #     )
-    #     jets = skimmer_utils.make_pt_eta_phi_mass_lorentz_vector(
-    #         pt=events.FatJet_pt[events.FatJet_isGood],
-    #         eta=events.FatJet_eta[events.FatJet_isGood],
-    #         phi=events.FatJet_phi[events.FatJet_isGood],
-    #         mass=events.FatJet_mass[events.FatJet_isGood],
-    #     )
+    # Delta phi min cut
+    if len(events) != 0:
+        # If needed because the selection crashes due to the special ak type
+        met = skimmer_utils.make_pt_eta_phi_mass_lorentz_vector(
+            pt=events.ScoutMET_pt,
+            phi=events.ScoutMET_phi,
+        )
+        jets = skimmer_utils.make_pt_eta_phi_mass_lorentz_vector(
+            pt=events.FatJet_pt[events.FatJet_isGood],
+            eta=events.FatJet_eta[events.FatJet_isGood],
+            phi=events.FatJet_phi[events.FatJet_isGood],
+            mass=events.FatJet_mass[events.FatJet_isGood],
+        )
 
-    #     met = ak.broadcast_arrays(met, jets)[0]
-    #     delta_phi_min = ak.min(abs(jets.delta_phi(met)), axis=1)
-    #     filter_deltaphi = delta_phi_min < 0.8
-    #     # Needed otherwise type is not defined and skim cannot be written
-    #     filter_deltaphi = as_type(filter_deltaphi, bool)
-    #     events = events[filter_deltaphi]
+        met = ak.broadcast_arrays(met, jets)[0]
+        delta_phi_min = ak.min(abs(jets.delta_phi(met)), axis=1)
+        filter_deltaphi = delta_phi_min < 0.8
+        # Needed otherwise type is not defined and skim cannot be written
+        filter_deltaphi = as_type(filter_deltaphi, bool)
+        events = events[filter_deltaphi]
 
-    # skimmer_utils.update_cut_flow(cut_flow, "DeltaPhiMin selection", events)
-    
+    skimmer_utils.update_cut_flow(cut_flow, "DeltaPhiMin selection", events)
+
+
     if len(events) != 0:
         events = sequences.add_analysis_branches(events)
     #if sequences.has_dark_quark_info(events):

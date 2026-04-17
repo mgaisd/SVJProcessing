@@ -6,14 +6,17 @@
 
 set -e  # Exit on error
 
+# Year input variable (default: 2017)
+YEAR=${1:-2017}
+
 echo "=============================================================="
 echo "Scouting JEC Map Creator - Production Run (All HT bins)"
 echo "=============================================================="
 
 # Configuration
-BASE_PATH="/store/user/mgaisdor/SVJScouting_ntuples/MC_offline/2017"
-MAX_FILES_PER_BIN=500  # Set to -1 to use all available files
-OUTPUT_DIR="test"
+BASE_PATH="/store/user/mgaisdor/SVJScouting_ntuples/MC_offline/${YEAR}"
+MAX_FILES_PER_BIN=-1  # Set to -1 to use all available files
+OUTPUT_DIR="/work/mgais/JEC_SVJProcessing/data/custom_JEC_maps/${YEAR}"
 SERVER="cmsdcache-kit-disk.gridka.de:1094"
 
 # QCD HT-binned datasets
@@ -35,6 +38,7 @@ fi
 
 echo ""
 echo "Configuration:"
+echo "  Year: $YEAR"
 echo "  Base path: $BASE_PATH"
 if [ $MAX_FILES_PER_BIN -eq -1 ]; then
     echo "  Max files per HT bin: ALL (no limit)"
@@ -77,7 +81,8 @@ for DATASET in "${DATASETS[@]}"; do
     echo "  $DATASET: $N_FILES files"
     
     # Append to master list
-    ALL_FILES="$ALL_FILES $FILES"
+    ALL_FILES="$ALL_FILES
+$FILES"
 done
 
 echo ""
@@ -89,12 +94,18 @@ if [ -z "$ALL_FILES" ]; then
     exit 1
 fi
 
+# Write file list to a temp file to avoid "Argument list too long"
+FILELIST=$(mktemp /tmp/jec_filelist_XXXXXX.txt)
+trap "rm -f $FILELIST" EXIT
+echo "$ALL_FILES" | sed '/^$/d' > $FILELIST
+echo "File list written to: $FILELIST"
+
 # Process all files at once - processes BOTH Jet and FatJet simultaneously
 echo "=============================================================="
 echo "Processing both AK4 (Jet) and AK8 (FatJet) from all HT bins..."
 echo "=============================================================="
 TOTAL_START=$(date +%s)
-time ./create_scouting_jec_map $ALL_FILES
+time ./create_scouting_jec_map --output-dir $OUTPUT_DIR --year $YEAR --filelist $FILELIST
 TOTAL_END=$(date +%s)
 
 # Create plots
@@ -103,18 +114,20 @@ echo "=============================================================="
 echo "Creating plots..."
 echo "=============================================================="
 
-if [ -f "$OUTPUT_DIR/scouting_jec_corrections_Jet.json" ]; then
+if [ -f "$OUTPUT_DIR/scouting_jec_diagnostics_${YEAR}_Jet.json" ]; then
     echo "Creating AK4 plots..."
     python3 plot_jec_corrections.py \
-        $OUTPUT_DIR/scouting_jec_corrections_Jet.json \
-        --output-dir $OUTPUT_DIR
+        $OUTPUT_DIR/scouting_jec_diagnostics_${YEAR}_Jet.json \
+        --output-dir $OUTPUT_DIR \
+        --year $YEAR
 fi
 
-if [ -f "$OUTPUT_DIR/scouting_jec_corrections_FatJet.json" ]; then
+if [ -f "$OUTPUT_DIR/scouting_jec_diagnostics_${YEAR}_FatJet.json" ]; then
     echo "Creating AK8 plots..."
     python3 plot_jec_corrections.py \
-        $OUTPUT_DIR/scouting_jec_corrections_FatJet.json \
-        --output-dir $OUTPUT_DIR
+        $OUTPUT_DIR/scouting_jec_diagnostics_${YEAR}_FatJet.json \
+        --output-dir $OUTPUT_DIR \
+        --year $YEAR
 fi
 
 TOTAL_END=$(date +%s)

@@ -20,7 +20,7 @@ import os
 plt.style.use(hep.style.CMS)
 
 
-def plot_correction_map(data, output_dir):
+def plot_correction_map(data, output_dir, year):
     """Create 2D correction map plot."""
     jet_type = data['jet_type']
     pt_bins = np.array(data['pt_bins'])
@@ -52,21 +52,21 @@ def plot_correction_map(data, output_dir):
     cbar.set_label("Correction Factor (Offline/Scouting)", fontsize=16)
     cbar.ax.tick_params(labelsize=14)
     
-    hep.cms.label(loc=0, data=False, lumi=None, year=2017, ax=ax)
+    hep.cms.label(loc=0, data=False, lumi=None, year=year, ax=ax)
     
     jet_label = "AK4 Jets" if jet_type == "Jet" else "AK8 Jets"
     ax.text(0.95, 0.95, jet_label, transform=ax.transAxes,
             fontsize=16, verticalalignment='top', horizontalalignment='right',
             bbox=dict(boxstyle='round', facecolor='white', alpha=0.8))
     
-    output_file = os.path.join(output_dir, f"scouting_correction_map_{jet_type}.png")
+    output_file = os.path.join(output_dir, f"scouting_correction_map_{year}_{jet_type}.png")
     plt.tight_layout()
     plt.savefig(output_file, dpi=300, bbox_inches='tight')
     print(f"Saved: {output_file}")
     plt.close()
 
 
-def plot_uncertainty_map(data, output_dir):
+def plot_uncertainty_map(data, output_dir, year):
     """Create 2D uncertainty map (resolution spread)."""
     jet_type = data['jet_type']
     pt_bins = np.array(data['pt_bins'])
@@ -97,21 +97,21 @@ def plot_uncertainty_map(data, output_dir):
     cbar.set_label("Uncertainty (std dev, resolution)", fontsize=16)
     cbar.ax.tick_params(labelsize=14)
     
-    hep.cms.label(loc=0, data=False, lumi=None, year=2017, ax=ax)
+    hep.cms.label(loc=0, data=False, lumi=None, year=year, ax=ax)
     
     jet_label = "AK4 Jets" if jet_type == "Jet" else "AK8 Jets"
     ax.text(0.95, 0.95, jet_label, transform=ax.transAxes,
             fontsize=16, verticalalignment='top', horizontalalignment='right',
             bbox=dict(boxstyle='round', facecolor='white', alpha=0.8))
     
-    output_file = os.path.join(output_dir, f"scouting_uncertainty_map_{jet_type}.png")
+    output_file = os.path.join(output_dir, f"scouting_uncertainty_map_{year}_{jet_type}.png")
     plt.tight_layout()
     plt.savefig(output_file, dpi=300, bbox_inches='tight')
     print(f"Saved: {output_file}")
     plt.close()
 
 
-def plot_stat_uncertainty_map(data, output_dir):
+def plot_stat_uncertainty_map(data, output_dir, year):
     """Create 2D statistical uncertainty map (σ/√N)."""
     jet_type = data['jet_type']
     pt_bins = np.array(data['pt_bins'])
@@ -142,21 +142,21 @@ def plot_stat_uncertainty_map(data, output_dir):
     cbar.set_label("Statistical Uncertainty (σ/√N)", fontsize=16)
     cbar.ax.tick_params(labelsize=14)
     
-    hep.cms.label(loc=0, data=False, lumi=None, year=2017, ax=ax)
+    hep.cms.label(loc=0, data=False, lumi=None, year=year, ax=ax)
     
     jet_label = "AK4 Jets" if jet_type == "Jet" else "AK8 Jets"
     ax.text(0.95, 0.95, jet_label, transform=ax.transAxes,
             fontsize=16, verticalalignment='top', horizontalalignment='right',
             bbox=dict(boxstyle='round', facecolor='white', alpha=0.8))
     
-    output_file = os.path.join(output_dir, f"scouting_stat_uncertainty_map_{jet_type}.png")
+    output_file = os.path.join(output_dir, f"scouting_stat_uncertainty_map_{year}_{jet_type}.png")
     plt.tight_layout()
     plt.savefig(output_file, dpi=300, bbox_inches='tight')
     print(f"Saved: {output_file}")
     plt.close()
 
 
-def plot_statistics_map(data, output_dir):
+def plot_statistics_map(data, output_dir, year):
     """Create statistics map showing number of jets per bin."""
     jet_type = data['jet_type']
     pt_bins = np.array(data['pt_bins'])
@@ -186,7 +186,7 @@ def plot_statistics_map(data, output_dir):
     cbar.set_label("Number of Jets per Bin", fontsize=16)
     cbar.ax.tick_params(labelsize=14)
     
-    hep.cms.label(loc=0, data=False, lumi=None, year=2017, ax=ax)
+    hep.cms.label(loc=0, data=False, lumi=None, year=year, ax=ax)
     
     jet_label = "AK4 Jets" if jet_type == "Jet" else "AK8 Jets"
     ax.text(0.95, 0.95, jet_label, transform=ax.transAxes,
@@ -199,14 +199,14 @@ def plot_statistics_map(data, output_dir):
             fontsize=14, verticalalignment='bottom', horizontalalignment='left',
             bbox=dict(boxstyle='round', facecolor='white', alpha=0.8))
     
-    output_file = os.path.join(output_dir, f"scouting_statistics_map_{jet_type}.png")
+    output_file = os.path.join(output_dir, f"scouting_statistics_map_{year}_{jet_type}.png")
     plt.tight_layout()
     plt.savefig(output_file, dpi=300, bbox_inches='tight')
     print(f"Saved: {output_file}")
     plt.close()
 
 
-def plot_correction_vs_pt(data, output_dir):
+def plot_correction_vs_pt(data, output_dir, year):
     """Create 1D profile: correction vs pT."""
     jet_type = data['jet_type']
     pt_bins = np.array(data['pt_bins'])
@@ -247,21 +247,21 @@ def plot_correction_vs_pt(data, output_dir):
     ax.legend(fontsize=12)
     ax.grid(alpha=0.3)
     
-    hep.cms.label(loc=0, data=False, lumi=None, year=2017, ax=ax)
+    hep.cms.label(loc=0, data=False, lumi=None, year=year, ax=ax)
     
     jet_label = "AK4 Jets" if jet_type == "Jet" else "AK8 Jets"
     ax.text(0.95, 0.95, jet_label, transform=ax.transAxes,
             fontsize=16, verticalalignment='top', horizontalalignment='right',
             bbox=dict(boxstyle='round', facecolor='white', alpha=0.8))
     
-    output_file = os.path.join(output_dir, f"scouting_correction_vs_pt_{jet_type}.png")
+    output_file = os.path.join(output_dir, f"scouting_correction_vs_pt_{year}_{jet_type}.png")
     plt.tight_layout()
     plt.savefig(output_file, dpi=300, bbox_inches='tight')
     print(f"Saved: {output_file}")
     plt.close()
 
 
-def plot_correction_vs_eta(data, output_dir):
+def plot_correction_vs_eta(data, output_dir, year):
     """Create 1D profile: correction vs eta."""
     jet_type = data['jet_type']
     pt_bins = np.array(data['pt_bins'])
@@ -298,14 +298,14 @@ def plot_correction_vs_eta(data, output_dir):
     ax.tick_params(axis='both', which='major', labelsize=14)
     ax.grid(alpha=0.3)
     
-    hep.cms.label(loc=0, data=False, lumi=None, year=2017, ax=ax)
+    hep.cms.label(loc=0, data=False, lumi=None, year=year, ax=ax)
     
     jet_label = "AK4 Jets" if jet_type == "Jet" else "AK8 Jets"
     ax.text(0.95, 0.95, jet_label, transform=ax.transAxes,
             fontsize=16, verticalalignment='top', horizontalalignment='right',
             bbox=dict(boxstyle='round', facecolor='white', alpha=0.8))
     
-    output_file = os.path.join(output_dir, f"scouting_correction_vs_eta_{jet_type}.png")
+    output_file = os.path.join(output_dir, f"scouting_correction_vs_eta_{year}_{jet_type}.png")
     plt.tight_layout()
     plt.savefig(output_file, dpi=300, bbox_inches='tight')
     print(f"Saved: {output_file}")
@@ -316,6 +316,7 @@ def main():
     parser = argparse.ArgumentParser(description='Plot JEC corrections from C++ output')
     parser.add_argument('json_file', help='JSON file from C++ program')
     parser.add_argument('--output-dir', default='test', help='Output directory for plots')
+    parser.add_argument('--year', type=int, default=2017, help='Data-taking year (default: 2017)')
     args = parser.parse_args()
     
     print("="*80)
@@ -323,6 +324,7 @@ def main():
     print("="*80)
     print(f"Input: {args.json_file}")
     print(f"Output: {args.output_dir}/")
+    print(f"Year: {args.year}")
     
     # Load data
     with open(args.json_file, 'r') as f:
@@ -355,12 +357,12 @@ def main():
     
     # Create plots
     print(f"\nCreating plots...")
-    plot_correction_map(data, args.output_dir)
-    plot_uncertainty_map(data, args.output_dir)
-    plot_stat_uncertainty_map(data, args.output_dir)
-    plot_statistics_map(data, args.output_dir)
-    plot_correction_vs_pt(data, args.output_dir)
-    plot_correction_vs_eta(data, args.output_dir)
+    plot_correction_map(data, args.output_dir, args.year)
+    plot_uncertainty_map(data, args.output_dir, args.year)
+    plot_stat_uncertainty_map(data, args.output_dir, args.year)
+    plot_statistics_map(data, args.output_dir, args.year)
+    plot_correction_vs_pt(data, args.output_dir, args.year)
+    plot_correction_vs_eta(data, args.output_dir, args.year)
     
     print("\n" + "="*80)
     print("Done!")
