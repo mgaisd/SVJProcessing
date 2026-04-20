@@ -36,13 +36,6 @@ def process(events, cut_flow, year, primary_dataset="", pn_tagger=False, **kwarg
         events = events[filter]
     skimmer_utils.update_cut_flow(cut_flow, "nJetsAK8Gt2", events)
 
-    # veto events with mini-isolated leptons (muons and electrons)
-    if len(events) != 0:
-        events = sequences.add_n_lepton_veto_branch(events)
-        events = sequences.apply_isolated_lepton_veto(events)
-
-    skimmer_utils.update_cut_flow(cut_flow, "IsolatedLeptonVeto", events)
-
 
 
     #apply RT filter (RT = MET over MT)
@@ -66,20 +59,20 @@ def process(events, cut_flow, year, primary_dataset="", pn_tagger=False, **kwarg
     skimmer_utils.update_cut_flow(cut_flow, "RT selection", events)
 
 
-    #apply DeltaEta filter (not applied because it is used as a control region)
-    # if len(events) != 0:
-    #     jets = skimmer_utils.make_pt_eta_phi_mass_lorentz_vector(
-    #         pt=events.FatJet_pt[events.FatJet_isGood],
-    #         eta=events.FatJet_eta[events.FatJet_isGood],
-    #         phi=events.FatJet_phi[events.FatJet_isGood],
-    #         mass=events.FatJet_mass[events.FatJet_isGood],
-    #     )
-    #     delta_eta = abs(event_vars.calculate_delta_eta(jets))
-    #     filter_deltaeta = delta_eta < 1.5
-    #     filter_deltaeta = as_type(filter_deltaeta, bool)
-    #     events = events[filter_deltaeta]
+    #apply DeltaEta filter (USED AS VALIDATION REGION)
+    if len(events) != 0:
+        jets = skimmer_utils.make_pt_eta_phi_mass_lorentz_vector(
+            pt=events.FatJet_pt[events.FatJet_isGood],
+            eta=events.FatJet_eta[events.FatJet_isGood],
+            phi=events.FatJet_phi[events.FatJet_isGood],
+            mass=events.FatJet_mass[events.FatJet_isGood],
+        )
+        delta_eta = abs(event_vars.calculate_delta_eta(jets))
+        filter_deltaeta = (delta_eta >= 1.5) & (delta_eta <= 2.2)
+        filter_deltaeta = as_type(filter_deltaeta, bool)
+        events = events[filter_deltaeta]
     
-    # skimmer_utils.update_cut_flow(cut_flow, "DeltaEtaj0j1 selection", events)
+    skimmer_utils.update_cut_flow(cut_flow, "DeltaEtaj0j1 selection", events)
 
     #apply MT selection
     if len(events) != 0:
@@ -100,11 +93,11 @@ def process(events, cut_flow, year, primary_dataset="", pn_tagger=False, **kwarg
     
     skimmer_utils.update_cut_flow(cut_flow, "MT selection", events)
 
-    #CZZ: MET filter event: MISSING (might not exist in scouting)
+    #CZZ: MET filter event: MISSING
 
     #CZZ: Phi spike filter: MISSING
 
-    #CZZ: HEM issue filter: MISSING (apply to random events with same fraction as the lumi affected by HEM issue in data)
+    #CZZ: HEM issue filter: MISSING 
 
 
     # Delta phi min cut

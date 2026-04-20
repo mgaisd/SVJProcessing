@@ -6,3 +6,4 @@ logs/
 utils/test
 output/
 data/jme_test
+*.root

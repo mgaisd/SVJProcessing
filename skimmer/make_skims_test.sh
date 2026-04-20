@@ -12,10 +12,10 @@ FORCE_RECREATE=1 # 1 to recreate output file if it exists, 0 else
 FIRST_FILE=0
 LAST_FILE=-1 #150  # Use -1 to skim all input files
 
-dataset_directory=/work/mgais/Run2ScoutingSkims_JEC
+dataset_directory=/ceph/mgais/Run2ScoutingSkims_JEC
 
 module=analysis_configs.s_channel_scouting_pre_selection
-selection_name=s_channel_scouting_pre_selection_with_custom_JEC_lepton_veto
+selection_name=s_channel_scouting_pre_selection_with_custom_JEC_full
 
 #module=analysis_configs.t_channel_wnae_qcd_training_region
 #selection_name=t_channel_wnae_qcd_training_region
@@ -33,7 +33,7 @@ pfnano_corrections_file=/work/mgais/JEC_SVJProcessing/data/corrections_2026-03-1
 year=2017
 
 add_weights_variations=0  # 1 to add PDF/scale weight variations, 0 else
-apply_scouting_jec=1      # 1 to apply custom scouting residual JECs, 0 to disable
+apply_scouting_jec=0      # 1 to apply custom scouting residual JECs, 0 to disable
 
 variations=(
     nominal
@@ -110,7 +110,7 @@ dataset_names=(
     #
     # QCD
     #
-    # low HT bins don't survive the pre-selection, can be emitted
+    # low HT bins don't survive the pre-selection, can be omitted
     #QCD_HT100to200
     #QCD_HT200to300 
     QCD_HT700to1000
@@ -205,10 +205,10 @@ cross_sections=(
     # 0.0412
 
 
-    #
-    # Backgrounds
-    #
-    # QCD
+    # #
+    # # Backgrounds
+    # #
+    # # QCD
     6310
     1094
     99.38
@@ -298,7 +298,8 @@ make_skims() {
                     else
                         weight_variation_flag=""
                     fi
-                    python skim.py -i ${input_files} -o ${output_file_tmp} -p ${module} -pd ${dataset_name} -y ${year} -nano_scout -mc -xsec ${xsec} -corrfile ${pfnano_corrections_file} -e ${EXECUTOR} -port ${PORT} -n ${N_WORKERS} -c ${CHUNK_SIZE} --memory ${MEMORY} --cores ${CORES} -pn_tagger ${variation_flag} ${weight_variation_flag} ${scouting_jec_flag}
+                    python skim.py -i ${input_files} -o ${output_file_tmp} -p ${module} -pd ${dataset_name} -y ${year} -nano_scout -xsec ${xsec} -e ${EXECUTOR} -port ${PORT} -n ${N_WORKERS} -c ${CHUNK_SIZE} --memory ${MEMORY} --cores ${CORES} -pn_tagger ${variation_flag} #${weight_variation_flag} #${scouting_jec_flag}
+                    #python skim.py -i ${input_files} -o ${output_file_tmp} -p ${module} -pd ${dataset_name} -y ${year} -nano_scout -xsec ${xsec} -e ${EXECUTOR} -port ${PORT} -n ${N_WORKERS} -c ${CHUNK_SIZE} --memory ${MEMORY} --cores ${CORES} -pn_tagger ${variation_flag[@]}
                     #python skim.py -i ${input_files} -o ${output_file_tmp} -p ${module} -pd ${dataset_name} -y ${year} -nano_scout -mc -xsec ${xsec} -corrfile ${pfnano_corrections_file} -e ${EXECUTOR} -port ${PORT} -n ${N_WORKERS} -c ${CHUNK_SIZE} --memory ${MEMORY} --cores ${CORES} -pn_tagger ${variation_flag} ${weight_variation_flag}
                     xrdcp -f ${output_file_tmp} ${output_file}
                     echo ${output_file} has been saved.

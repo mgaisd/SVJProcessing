@@ -334,7 +334,10 @@ def make_constituents_per_jet(constituents_per_event, n_jets, jet_idx_field_name
     counts = count_constituents(constituents_per_event[jet_idx_field_name], n_jets)
 
     flat_counts = ak.flatten(counts)
+    flat_counts = ak.values_astype(flat_counts, np.int64)
+
     flat_constituents = ak.flatten(constituents_per_event)
     constituents_per_jet = ak.unflatten(flat_constituents, flat_counts, axis=0)
+
 
     return constituents_per_jet, counts
