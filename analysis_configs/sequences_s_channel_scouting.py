@@ -119,6 +119,99 @@ def add_good_ak8_jet_branch(events):
     return events
 
 
+def _build_scouting_lepton_collections(events):
+    required_fields = [
+        "Electron_pt",
+        "Electron_eta",
+        "Electron_combinedMiniIso",
+        "Muon_pt",
+        "Muon_eta",
+        "Muon_combinedMiniIso",
+    ]
+
+    if any(field not in events.fields for field in required_fields):
+        return None, None
+
+    electrons = ak.zip(
+        {
+            "pt": events["Electron_pt"],
+            "eta": events["Electron_eta"],
+            "iso": events["Electron_combinedMiniIso"],
+        }
+    )
+
+    muons = ak.zip(
+        {
+            "pt": events["Muon_pt"],
+            "eta": events["Muon_eta"],
+            "iso": events["Muon_combinedMiniIso"],
+        }
+    )
+
+    return electrons, muons
+
+def __get_number_of_veto_leptons(
+        events,
+        electron_extra_condition=None,
+        muon_extra_condition=None,
+    ):
+
+    electrons, muons = _build_scouting_lepton_collections(events)
+    if electrons is None or muons is None:
+        return ak.zeros_like(ak.num(events.FatJet_pt, axis=1), dtype=np.int64)
+
+    electron_condition = obj.is_veto_electron(electrons)
+    if electron_extra_condition is not None:
+        electron_condition = electron_condition & electron_extra_condition
+
+    muon_condition = obj.is_veto_muon(muons)
+    if muon_extra_condition is not None:
+        muon_condition = muon_condition & muon_extra_condition
+
+    veto_electrons = electrons[electron_condition]
+    veto_muons = muons[muon_condition]
+    n_veto_electrons = ak.count(veto_electrons.pt, axis=1)
+    n_veto_muons = ak.count(veto_muons.pt, axis=1)
+    n_veto_leptons = n_veto_electrons + n_veto_muons
+
+    return n_veto_leptons
+
+
+def add_n_lepton_veto_branch(events):
+    n_veto_leptons = __get_number_of_veto_leptons(
+        events,
+        electron_extra_condition=None,
+        muon_extra_condition=None,
+    )
+
+    events = ak.with_field(
+        events,
+        n_veto_leptons,
+        "nVetoLeptons",
+    )
+
+    return events
+ 
+
+def apply_isolated_lepton_veto(
+        events,
+        electron_extra_condition=None,
+        muon_extra_condition=None,
+        revert=False,
+    ):
+    n_veto_leptons = __get_number_of_veto_leptons(
+        events,
+        electron_extra_condition=electron_extra_condition,
+        muon_extra_condition=muon_extra_condition,
+    )
+
+    if revert:
+        filter = (n_veto_leptons != 0)
+    else:
+        filter = (n_veto_leptons == 0)
+    events = events[filter]
+
+    return events
 
 def add_analysis_branches(events):
 

@@ -1,10 +1,10 @@
 #!/bin/bash
 
-dataset_directory=/ceph/mgais/Run2ScoutingSkims2017
-dataset_config=dataset_configs.s_channel_scouting_2017_MC
+dataset_directory=/work/mgais/Run2ScoutingSkims_JEC
+dataset_config=dataset_configs.s_channel_scouting_dataset_paths
 
 module=analysis_configs.s_channel_scouting_pre_selection
-selection_name=s_channel_scouting_pre_selection
+selection_name=s_channel_scouting_pre_selection_with_custom_JEC_lepton_veto
 
 #module=analysis_configs.t_channel_wnae_qcd_training_region
 #selection_name=t_channel_wnae_qcd_training_region
@@ -22,62 +22,62 @@ dataset_names=(
     # Signals
     #
 
-    s-channel_mMed-500_mDark-20_rinv-0.3
-    # s-channel_mMed-500_mDark-20_rinv-0.5
-    # s-channel_mMed-500_mDark-20_rinv-0.7
+    # s-channel_mMed-500_mDark-20_rinv-0.3
+    # # s-channel_mMed-500_mDark-20_rinv-0.5
+    # # s-channel_mMed-500_mDark-20_rinv-0.7
 
-    s-channel_mMed-600_mDark-20_rinv-0.3
-    # s-channel_mMed-600_mDark-20_rinv-0.5
-    # s-channel_mMed-600_mDark-20_rinv-0.7
+    # s-channel_mMed-600_mDark-20_rinv-0.3
+    # # s-channel_mMed-600_mDark-20_rinv-0.5
+    # # s-channel_mMed-600_mDark-20_rinv-0.7
 
-    s-channel_mMed-700_mDark-20_rinv-0.3
-    # s-channel_mMed-700_mDark-20_rinv-0.5
-    # s-channel_mMed-700_mDark-20_rinv-0.7
+    # s-channel_mMed-700_mDark-20_rinv-0.3
+    # # s-channel_mMed-700_mDark-20_rinv-0.5
+    # # s-channel_mMed-700_mDark-20_rinv-0.7
 
-    s-channel_mMed-800_mDark-20_rinv-0.3
-    # s-channel_mMed-800_mDark-20_rinv-0.5
-    # s-channel_mMed-800_mDark-20_rinv-0.7
+    # s-channel_mMed-800_mDark-20_rinv-0.3
+    # # s-channel_mMed-800_mDark-20_rinv-0.5
+    # # s-channel_mMed-800_mDark-20_rinv-0.7
 
-    s-channel_mMed-900_mDark-20_rinv-0.3
-    # s-channel_mMed-900_mDark-20_rinv-0.5
-    # s-channel_mMed-900_mDark-20_rinv-0.7
+    # s-channel_mMed-900_mDark-20_rinv-0.3
+    # # s-channel_mMed-900_mDark-20_rinv-0.5
+    # # s-channel_mMed-900_mDark-20_rinv-0.7
 
-    s-channel_mMed-1000_mDark-20_rinv-0.3
-    # s-channel_mMed-1000_mDark-20_rinv-0.5
-    # s-channel_mMed-1000_mDark-20_rinv-0.7
+    # s-channel_mMed-1000_mDark-20_rinv-0.3
+    # # s-channel_mMed-1000_mDark-20_rinv-0.5
+    # # s-channel_mMed-1000_mDark-20_rinv-0.7
 
-    s-channel_mMed-1100_mDark-20_rinv-0.3
-    # s-channel_mMed-1100_mDark-20_rinv-0.5
-    # s-channel_mMed-1100_mDark-20_rinv-0.7
+    # s-channel_mMed-1100_mDark-20_rinv-0.3
+    # # s-channel_mMed-1100_mDark-20_rinv-0.5
+    # # s-channel_mMed-1100_mDark-20_rinv-0.7
 
-    s-channel_mMed-1200_mDark-20_rinv-0.3
-    # s-channel_mMed-1200_mDark-20_rinv-0.5
-    # s-channel_mMed-1200_mDark-20_rinv-0.7
+    # s-channel_mMed-1200_mDark-20_rinv-0.3
+    # # s-channel_mMed-1200_mDark-20_rinv-0.5
+    # # s-channel_mMed-1200_mDark-20_rinv-0.7
 
-    s-channel_mMed-1300_mDark-20_rinv-0.3
-    # s-channel_mMed-1300_mDark-20_rinv-0.5
-    # s-channel_mMed-1300_mDark-20_rinv-0.7
+    # s-channel_mMed-1300_mDark-20_rinv-0.3
+    # # s-channel_mMed-1300_mDark-20_rinv-0.5
+    # # s-channel_mMed-1300_mDark-20_rinv-0.7
 
-    s-channel_mMed-1400_mDark-20_rinv-0.3
-    # s-channel_mMed-1400_mDark-20_rinv-0.5
-    # s-channel_mMed-1400_mDark-20_rinv-0.7
+    # s-channel_mMed-1400_mDark-20_rinv-0.3
+    # # s-channel_mMed-1400_mDark-20_rinv-0.5
+    # # s-channel_mMed-1400_mDark-20_rinv-0.7
 
-    s-channel_mMed-1500_mDark-20_rinv-0.3
-    # s-channel_mMed-1500_mDark-20_rinv-0.5
-    # s-channel_mMed-1500_mDark-20_rinv-0.7
+    # s-channel_mMed-1500_mDark-20_rinv-0.3
+    # # s-channel_mMed-1500_mDark-20_rinv-0.5
+    # # s-channel_mMed-1500_mDark-20_rinv-0.7
 
     # s-channel_mMed-3000_mDark-20_rinv-0.3
     # s-channel_mMed-3000_mDark-20_rinv-0.5
     # s-channel_mMed-3000_mDark-20_rinv-0.7
 
-    #
-    # Backgrounds
-    #
-    # QCD
-    #
-    # low HT bins don't survive the pre-selection, can be emitted
-    #QCD_HT100to200
-    #QCD_HT200to300 
+    # #
+    # # Backgrounds
+    # #
+    # # QCD
+    # #
+    # # low HT bins don't survive the pre-selection, can be emitted
+    # #QCD_HT100to200
+    # #QCD_HT200to300 
     QCD_HT300to500
     QCD_HT500to700
     QCD_HT700to1000

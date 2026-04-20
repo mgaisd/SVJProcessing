@@ -2,9 +2,9 @@
 
 N_WORKERS=6
 
-dataset_directory=/ceph/mgais/Run2ScoutingSkims2017
+dataset_directory=/ceph/mgais/Run2ScoutingSkims_JEC
 
-selection_name=s_channel_scouting_pre_selection
+selection_name=s_channel_scouting_pre_selection_with_custom_JEC_lepton_veto/nominal
 #selection_name=t_channel_wnae_qcd_training_region
 #selection_name=t_channel_wnae_top_training_region
 #selection_name=t_channel_lost_lepton_control_region
@@ -12,7 +12,7 @@ selection_name=s_channel_scouting_pre_selection
 year=2017
 
 # Output directory for nominal samples - no variation of the uncertainties
-output_directory=root://cmsdcache-kit-disk.gridka.de:1094//store/user/mgaisdor/SVJScouting_skims
+output_directory=root://cmsdcache-kit-disk.gridka.de:1094//store/user/mgaisdor/SVJScouting_skims_JEC
 
 
 dataset_names=(
@@ -20,49 +20,49 @@ dataset_names=(
     # Signals
     #
 
-    s-channel_mMed-500_mDark-20_rinv-0.3
-    #s-channel_mMed-500_mDark-20_rinv-0.5
-    #s-channel_mMed-500_mDark-20_rinv-0.7
+    # s-channel_mMed-500_mDark-20_rinv-0.3
+    # #s-channel_mMed-500_mDark-20_rinv-0.5
+    # #s-channel_mMed-500_mDark-20_rinv-0.7
 
-    s-channel_mMed-600_mDark-20_rinv-0.3
-    #s-channel_mMed-600_mDark-20_rinv-0.5
-    #s-channel_mMed-600_mDark-20_rinv-0.7
+    # s-channel_mMed-600_mDark-20_rinv-0.3
+    # #s-channel_mMed-600_mDark-20_rinv-0.5
+    # #s-channel_mMed-600_mDark-20_rinv-0.7
 
-    s-channel_mMed-700_mDark-20_rinv-0.3
-    #s-channel_mMed-700_mDark-20_rinv-0.5
-    #s-channel_mMed-700_mDark-20_rinv-0.7
+    # s-channel_mMed-700_mDark-20_rinv-0.3
+    # #s-channel_mMed-700_mDark-20_rinv-0.5
+    # #s-channel_mMed-700_mDark-20_rinv-0.7
 
-    s-channel_mMed-800_mDark-20_rinv-0.3
-    #s-channel_mMed-800_mDark-20_rinv-0.5
-    #s-channel_mMed-800_mDark-20_rinv-0.7
+    # s-channel_mMed-800_mDark-20_rinv-0.3
+    # #s-channel_mMed-800_mDark-20_rinv-0.5
+    # #s-channel_mMed-800_mDark-20_rinv-0.7
 
-    s-channel_mMed-900_mDark-20_rinv-0.3
-    #s-channel_mMed-900_mDark-20_rinv-0.5
-    #s-channel_mMed-900_mDark-20_rinv-0.7
+    # s-channel_mMed-900_mDark-20_rinv-0.3
+    # #s-channel_mMed-900_mDark-20_rinv-0.5
+    # #s-channel_mMed-900_mDark-20_rinv-0.7
 
-    s-channel_mMed-1000_mDark-20_rinv-0.3
-    #s-channel_mMed-1000_mDark-20_rinv-0.5
-    #s-channel_mMed-1000_mDark-20_rinv-0.7
+    # s-channel_mMed-1000_mDark-20_rinv-0.3
+    # #s-channel_mMed-1000_mDark-20_rinv-0.5
+    # #s-channel_mMed-1000_mDark-20_rinv-0.7
 
-    s-channel_mMed-1100_mDark-20_rinv-0.3
-    #s-channel_mMed-1100_mDark-20_rinv-0.5
-    #s-channel_mMed-1100_mDark-20_rinv-0.7
+    # s-channel_mMed-1100_mDark-20_rinv-0.3
+    # #s-channel_mMed-1100_mDark-20_rinv-0.5
+    # #s-channel_mMed-1100_mDark-20_rinv-0.7
 
-    s-channel_mMed-1200_mDark-20_rinv-0.3
-    #s-channel_mMed-1200_mDark-20_rinv-0.5
-    #s-channel_mMed-1200_mDark-20_rinv-0.7
+    # s-channel_mMed-1200_mDark-20_rinv-0.3
+    # #s-channel_mMed-1200_mDark-20_rinv-0.5
+    # #s-channel_mMed-1200_mDark-20_rinv-0.7
 
-    s-channel_mMed-1300_mDark-20_rinv-0.3
-    #s-channel_mMed-1300_mDark-20_rinv-0.5
-    #s-channel_mMed-1300_mDark-20_rinv-0.7
+    # s-channel_mMed-1300_mDark-20_rinv-0.3
+    # #s-channel_mMed-1300_mDark-20_rinv-0.5
+    # #s-channel_mMed-1300_mDark-20_rinv-0.7
 
-    s-channel_mMed-1400_mDark-20_rinv-0.3
-    #s-channel_mMed-1400_mDark-20_rinv-0.5
-    #s-channel_mMed-1400_mDark-20_rinv-0.7
+    # s-channel_mMed-1400_mDark-20_rinv-0.3
+    # #s-channel_mMed-1400_mDark-20_rinv-0.5
+    # #s-channel_mMed-1400_mDark-20_rinv-0.7
 
-    s-channel_mMed-1500_mDark-20_rinv-0.3
-    #s-channel_mMed-1500_mDark-20_rinv-0.5
-    #s-channel_mMed-1500_mDark-20_rinv-0.7
+    # s-channel_mMed-1500_mDark-20_rinv-0.3
+    # #s-channel_mMed-1500_mDark-20_rinv-0.5
+    # #s-channel_mMed-1500_mDark-20_rinv-0.7
 
     # s-channel_mMed-3000_mDark-20_rinv-0.3
     # s-channel_mMed-3000_mDark-20_rinv-0.5

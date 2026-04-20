@@ -36,6 +36,13 @@ def process(events, cut_flow, year, primary_dataset="", pn_tagger=False, **kwarg
         events = events[filter]
     skimmer_utils.update_cut_flow(cut_flow, "nJetsAK8Gt2", events)
 
+    # veto events with mini-isolated leptons (muons and electrons)
+    if len(events) != 0:
+        events = sequences.add_n_lepton_veto_branch(events)
+        events = sequences.apply_isolated_lepton_veto(events)
+
+    skimmer_utils.update_cut_flow(cut_flow, "IsolatedLeptonVeto", events)
+
 
 
     #apply RT filter (RT = MET over MT)
@@ -93,11 +100,11 @@ def process(events, cut_flow, year, primary_dataset="", pn_tagger=False, **kwarg
     
     skimmer_utils.update_cut_flow(cut_flow, "MT selection", events)
 
-    #CZZ: MET filter event: MISSING
+    #CZZ: MET filter event: MISSING (might not exist in scouting)
 
     #CZZ: Phi spike filter: MISSING
 
-    #CZZ: HEM issue filter: MISSING 
+    #CZZ: HEM issue filter: MISSING (apply to random events with same fraction as the lumi affected by HEM issue in data)
 
 
     # Delta phi min cut

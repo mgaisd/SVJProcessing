@@ -317,7 +317,7 @@ def count_constituents(jet_indices, n_jets):
     return __count_constituents(builder, jet_indices, n_jets).snapshot()
 
 
-def make_constituents_per_jet(constituents_per_event, n_jets, jet_idx_field_name="jetIdx"):
+def make_constituents_per_jet(constituents_per_event, n_jets, jet_idx_field_name="jetIdx", filename=None):
     """Make ak array of constituents per jet, from per event ak array.
     
     Args:
@@ -330,6 +330,7 @@ def make_constituents_per_jet(constituents_per_event, n_jets, jet_idx_field_name
     """
 
     constituents_per_event = akUtl.sort_array_with_fields(constituents_per_event, jet_idx_field_name, ascending=True)
+
     counts = count_constituents(constituents_per_event[jet_idx_field_name], n_jets)
 
     flat_counts = ak.flatten(counts)
