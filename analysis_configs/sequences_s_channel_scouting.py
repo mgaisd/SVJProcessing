@@ -118,6 +118,39 @@ def add_good_ak8_jet_branch(events):
 
     return events
 
+def add_good_ak4_jet_branch(events):
+    ak4_jets = ak.zip(
+        {
+            "pt": events.Jets_pt,
+            "mass": events.Jets_mass,
+            "eta": events.Jets_eta,
+            "phi": events.Jets_phi,
+            "id": events.Jets_jetId,
+        },
+        with_name="PtEtaPhiMLorentzVector",
+    )
+    
+    is_good_analysis_ak4_jet = (
+        obj.is_good_ak4_jet(ak4_jets)
+    )
+
+    #add new branch to the events
+    events["Jets_isGood"] = is_good_analysis_ak4_jet
+
+    return events
+
+
+def add_veto_leptons_branches(events):
+    electrons, muons = _build_scouting_lepton_collections(events)
+    if electrons is None or muons is None:
+        n_events = ak.num(events.FatJet_pt, axis=0)
+        events["Electron_isVeto"] = ak.Array([[] for _ in range(n_events)])
+        events["Muon_isVeto"] = ak.Array([[] for _ in range(n_events)])
+    else:
+        events["Electron_isVeto"] = obj.is_veto_electron(electrons)
+        events["Muon_isVeto"] = obj.is_veto_muon(muons)
+    return events
+
 
 def _build_scouting_lepton_collections(events):
     required_fields = [

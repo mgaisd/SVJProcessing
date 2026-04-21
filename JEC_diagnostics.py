@@ -1,58 +1,12 @@
 #!/usr/bin/env python3
 """
-Script to compare corrected vs uncorrected jet pT and MET distributions
-across QCD bins and signal samples with proper cross-section weighting.
+Compares corrected vs uncorrected FatJet pT and MET distributions across
+background and signal samples, with cross-section weighting.
 
-JEC DIAGNOSTIC METRICS AND BEST PRACTICES:
-==========================================
-
-1. RATIO PLOTS (Reco/Gen):
-   - PRIMARY DIAGNOSTIC: Compare corrected vs uncorrected ratio to Gen
-   - Corrected jets should be closer to 1.0 across all pT ranges
-   - Look for pT-dependent trends (corrections should flatten response)
-   - Typical uncorrected jets are ~10-20% low at low pT due to detector effects
-   
-2. RESPONSE METRICS:
-   - Mean response: <pT_reco / pT_gen> in bins of pT
-   - RMS/width: spread of response (resolution)
-   - Bias: deviation of mean response from 1.0
-   
-3. MET CLOSURE:
-   - MET is very sensitive to JECs (vectorial sum of all objects)
-   - Better JECs → MET_reco closer to MET_gen
-   - Compare MET resolution: RMS(MET_reco - MET_gen)
-   - Watch for systematic shifts in MET_reco/MET_gen ratio
-   
-4. PT-DEPENDENT EFFECTS:
-   - Low pT (<100 GeV): largest corrections, sensitive to pileup
-   - High pT (>500 GeV): smaller corrections, radiation effects
-   - Plot response vs pT in bins to check correction quality
-   
-5. JET MATCHING CONSIDERATIONS:
-   
-   NO MATCHING NEEDED FOR:
-   - Inclusive jet pT distributions (as done here)
-   - Average response checks across full sample
-   - Statistical shape comparisons
-   
-   MATCHING NEEDED FOR:
-   - Event-by-event response calculations
-   - Individual jet pT_reco/pT_gen ratios
-   - Detailed jet-by-jet JEC validation
-   - Resolution studies (requires deltaR < 0.4 matching typically)
-   
-   For this diagnostic script:
-   - We look at DISTRIBUTIONS, not per-jet correlations
-   - Statistical comparison of shapes is sufficient
-   - Matching would be needed for per-jet response studies
-   
-6. ADDITIONAL USEFUL METRICS (not yet implemented):
-   - Delta(pT)/pT vs eta: spatial dependence of corrections
-   - Response vs number of vertices (pileup dependence)
-   - Mean jet multiplicity: corrected vs uncorrected
-   - Jet mass resolution (for fat jets)
-   - Alpha/MPF methods for data-MC JEC validation
-
+Produces: pT distributions with gen ratio, MET distributions, MET closure
+(reco - gen), delta-phi(MET_reco, MET_gen), MET resolution vs gen MET, and
+mean jet response / resolution vs pT.  Three MET variants are compared:
+uncorrected, official-JEC-only, and all corrections applied.
 """
 
 import os

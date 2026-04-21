@@ -306,7 +306,8 @@ def is_mc(events):
     if is_tree_maker(events):
         return "Weight" in events.fields
     else:
-        return "genWeight" in events.fields
+        #return "genWeight" in events.fields
+        return "GenFatJet_pt" in events.fields
 
 
 def is_data(events):

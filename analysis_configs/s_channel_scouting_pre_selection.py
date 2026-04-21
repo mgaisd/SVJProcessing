@@ -28,7 +28,31 @@ def process(events, cut_flow, year, primary_dataset="", pn_tagger=False, **kwarg
     # Adding JetsAK8_isGood branch already so that it can be used
     # in the rest of the pre-selection
     if len(events) != 0:
-        events = sequences.add_good_ak8_jet_branch(events)    
+        events = sequences.add_good_ak8_jet_branch(events)
+        events = sequences.add_good_ak4_jet_branch(events)
+        events = sequences.add_veto_leptons_branches(events)
+
+    # HEM issue filter: (apply to random events with same fraction as the lumi affected by HEM issue in data)
+    # needs to have veto leptons and good ak4 jets already
+    if len(events) != 0:
+        good_ak4_jets = ak.zip({
+            "eta": events.Jets_eta[events.Jets_isGood],
+            "phi": events.Jets_phi[events.Jets_isGood],
+        })
+        veto_electrons = ak.zip({
+            "eta": events.Electron_eta[events.Electron_isVeto],
+            "phi": events.Electron_phi[events.Electron_isVeto],
+        })
+        veto_muons = ak.zip({
+            "eta": events.Muon_eta[events.Muon_isVeto],
+            "phi": events.Muon_phi[events.Muon_isVeto],
+        })
+        if year == "2018" and skimmer_utils.is_data(events):
+            events = skimmer_utils.apply_hem_veto(events, good_ak4_jets, veto_electrons, veto_muons)
+            skimmer_utils.update_cut_flow(cut_flow, "HEMVeto", events)
+        if year == "2018" and skimmer_utils.is_mc(events):
+            filter = skimmer_utils.get_hem_veto_filter(good_ak4_jets, veto_electrons, veto_muons)
+            events["HEMVeto"] = filter
 
     # Requiring at least 2 good FatJets
     if len(events) != 0:
@@ -103,9 +127,6 @@ def process(events, cut_flow, year, primary_dataset="", pn_tagger=False, **kwarg
     #CZZ: MET filter event: MISSING (might not exist in scouting)
 
     #CZZ: Phi spike filter: MISSING
-
-    #CZZ: HEM issue filter: MISSING (apply to random events with same fraction as the lumi affected by HEM issue in data)
-
 
     # Delta phi min cut
     if len(events) != 0:
