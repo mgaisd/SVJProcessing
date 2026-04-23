@@ -110,7 +110,7 @@ dataset_names=(
     #
     # QCD
     #
-    # low HT bins don't survive the pre-selection, can be emitted
+    # low HT bins < 300 don't survive the pre-selection, can be emitted
     #QCD_HT100to200
     #QCD_HT200to300 
     QCD_HT700to1000
@@ -124,9 +124,9 @@ dataset_names=(
     # TTJets
     #
     TTJets_TuneCP5
-    TTJets_SingleLeptFromT
-    TTJets_SingleLeptFromTbar
-    TTJets_DiLept
+    # TTJets_SingleLeptFromT
+    # TTJets_SingleLeptFromTbar
+    # TTJets_DiLept
     TTJets_HT-600to800
     TTJets_HT-800to1200
     TTJets_HT-1200to2500
@@ -218,9 +218,9 @@ cross_sections=(
 
     # TTJets
     831.8
-    182.2
-    182.2
-    87.3
+    # 182.2
+    # 182.2
+    # 87.3
     2.4
     0.98
     0.2

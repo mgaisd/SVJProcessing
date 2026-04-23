@@ -28,9 +28,9 @@ def __prepare_input_files_lists(
 
 def test_execution():
 
-    years = ["2018"]
-    dataset_name = "mMed-1500GeV_mDark-20GeV_rinv-0.3_alpha-peak_13TeV"
-    dataset_config = "dataset_configs.tests_schannel_scouting"
+    years = ["2017"]
+    dataset_name = "QCD_HT1500to2000"
+    dataset_config = "dataset_configs.s_channel_scouting_dataset_paths"
     analysis_config = "analysis_configs.s_channel_scouting_pre_selection"
     selection_name = "s_channel_scouting_pre_selection"
 

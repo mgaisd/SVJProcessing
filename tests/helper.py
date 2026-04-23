@@ -9,7 +9,7 @@ def get_temporary_directory():
         temporary_directory = f"/uscmst1b_scratch/lpc1/3DayLifetime/{os.environ['USER']}"
     elif "t3ui" in os.environ["HOSTNAME"]:
         temporary_directory = f"/tmp/{os.environ['USER']}"
-    elif "portal1" in os.environ["HOSTNAME"]:
+    elif "portal1" in os.environ["HOSTNAME"] or "bms" in os.environ["HOSTNAME"] or "deepthought" in os.environ["HOSTNAME"]:
         temporary_directory = f"/tmp/{os.environ['USER']}"
     else:
         log.critical(f"Unknown hostname {os.environ['HOSTNAME']}")
