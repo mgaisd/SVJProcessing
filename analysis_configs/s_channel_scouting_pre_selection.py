@@ -9,10 +9,10 @@ from analysis_configs import sequences_s_channel_scouting as sequences
 
 
 GOLDEN_JSON_PATHS = {
-    "2016APV": "/work/mgais/SVJProcessing/data/golden_jsons/Cert_271036-284044_13TeV_Legacy2016_Collisions16_JSON.txt",
-    "2016": "/work/mgais/SVJProcessing/data/golden_jsons/Cert_271036-284044_13TeV_Legacy2016_Collisions16_JSON.txt",
-    "2017": "/work/mgais/SVJProcessing/data/golden_jsons/Cert_294927-306462_13TeV_UL2017_Collisions17_GoldenJSON.txt", 
-    "2018": "/work/mgais/SVJProcessing/data/golden_jsons/Cert_314472-325175_13TeV_Legacy2018_Collisions18_JSON.txt", 
+    "2016APV": "/work/mgais/SVJProcessing/data/golden_json/Cert_271036-284044_13TeV_Legacy2016_Collisions16_JSON.txt",
+    "2016": "/work/mgais/SVJProcessing/data/golden_json/Cert_271036-284044_13TeV_Legacy2016_Collisions16_JSON.txt",
+    "2017": "/work/mgais/SVJProcessing/data/golden_json/Cert_294927-306462_13TeV_UL2017_Collisions17_GoldenJSON.txt", 
+    "2018": "/work/mgais/SVJProcessing/data/golden_json/Cert_314472-325175_13TeV_Legacy2018_Collisions18_JSON.txt", 
 }
 
 
