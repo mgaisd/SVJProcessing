@@ -8,8 +8,24 @@ from analysis_configs.met_filters import met_filters_nanoaod as met_filters
 from analysis_configs import sequences_s_channel_scouting as sequences
 
 
+GOLDEN_JSON_PATHS = {
+    "2016APV": "/work/mgais/SVJProcessing/data/golden_jsons/Cert_271036-284044_13TeV_Legacy2016_Collisions16_JSON.txt",
+    "2016": "/work/mgais/SVJProcessing/data/golden_jsons/Cert_271036-284044_13TeV_Legacy2016_Collisions16_JSON.txt",
+    "2017": "/work/mgais/SVJProcessing/data/golden_jsons/Cert_294927-306462_13TeV_UL2017_Collisions17_GoldenJSON.txt", 
+    "2018": "/work/mgais/SVJProcessing/data/golden_jsons/Cert_314472-325175_13TeV_Legacy2018_Collisions18_JSON.txt", 
+}
+
+
 def process(events, cut_flow, year, primary_dataset="", dataset_name="", pn_tagger=False, **kwargs):
     """SVJ s-channel scouting pre-selection."""
+
+    # Golden JSON lumi mask (data only)
+    if skimmer_utils.is_data(events) and len(events) != 0:
+        from coffea.lumi_tools import LumiMask
+        lumi_mask = LumiMask(GOLDEN_JSON_PATHS[year])
+        mask = lumi_mask(events.run, events.lumSec)
+        events = events[mask]
+    skimmer_utils.update_cut_flow(cut_flow, "GoldenJSON", events)
 
     # TT stitching: for the inclusive TTJets sample, remove events covered by
     # the HT-binned samples (LHE_HT >= 600 GeV) to avoid double-counting
