@@ -389,9 +389,7 @@ def apply_jercs_PFNano(
 
     # calculate all variables needed as inputs, apply both JEC and JER
     jerc_key_label = ""
-
-    # TODO for now only JEC, need to fix matching for JER application
-    # jerc_key_label = "NOJER"  # COMMENTED TO TEST JER
+    # jerc_key_label = "NOJER" 
 
     #build jet corrections
     correction_key = None
@@ -450,18 +448,22 @@ def propagate_jecs_to_MET_PFNano(
 
     # Check if using scouting data (rho) or standard NanoAOD (fixedGridRhoFastjetAll)
     rho = events.rho if "rho" in events.fields else events.fixedGridRhoFastjetAll
-    jets_corrected_nom = jet_factory[correction_key].build(make_jets_for_jerc(events,jet_coll, rho, correction_key), jerc_cache)
+    
+    # Use CorrT1METJet for T1 MET jets if available, otherwise fall back to jet_coll
+    t1met_coll = "CorrT1METJet" if "CorrT1METJet_pt" in events.fields else jet_coll
+
+    jets_corrected_nom = jet_factory[correction_key].build(make_jets_for_jerc(events,t1met_coll, rho, correction_key), jerc_cache)
 
     #extract corrected jets
     jet_pt_corr_nom  = jets_corrected_nom.pt
-    jet_phi_corr_nom  = events[f"{jet_coll}_phi"]
+    jet_phi_corr_nom  = events[f"{t1met_coll}_phi"]
 
     # The factory raw input is scouting-corrected pt for scouting events.
     # Keep both baselines so we can save two corrected MET flavors:
     # - official_only : official JEC delta on top of scouting-corrected jets
     # - all_corr      : full delta from truly raw scouting pt to final corrected pt
     jet_pt_raw_official_only = jets_corrected_nom.pt_raw
-    pt_raw_scouting_field = f"{jet_coll}_pt_raw_scouting"
+    pt_raw_scouting_field = f"{t1met_coll}_pt_raw_scouting"
     if pt_raw_scouting_field in events.fields:
         jet_pt_raw_all_corr = events[pt_raw_scouting_field]
     else:
@@ -620,7 +622,9 @@ def calc_jerc_variations_PFNano(
     
     # Check if using scouting data (rho) or standard NanoAOD (fixedGridRhoFastjetAll)
     rho = events.rho if "rho" in events.fields else events.fixedGridRhoFastjetAll
-    jets_input = make_jets_for_jerc(events,jet_coll, rho, correction_key)
+    # Use CorrT1METJet for T1 MET jets if available, otherwise fall back to jet_coll
+    t1met_coll = "CorrT1METJet" if "CorrT1METJet_pt" in events.fields else jet_coll
+    jets_input = make_jets_for_jerc(events, t1met_coll, rho, correction_key)
     jets_corrected = jet_factory[correction_key].build(jets_input, jerc_cache)
 
         
@@ -639,7 +643,7 @@ def calc_jerc_variations_PFNano(
     # pt_raw_var is the baseline pt from which the varied correction is computed.
     # Use truly raw pt (before scouting JEC) when available so the full delta is in T1.
     _pt_raw_var_factory = eval(f"jets_corrected.{access_jerc_corr_jets}.{direction}.pt_raw")
-    pt_raw_scouting_field = f"{jet_coll}_pt_raw_scouting"
+    pt_raw_scouting_field = f"{t1met_coll}_pt_raw_scouting"
     pt_raw_var = events[pt_raw_scouting_field] if pt_raw_scouting_field in events.fields else _pt_raw_var_factory
     
     # Extract uncorrected values to save
@@ -703,14 +707,16 @@ def calc_unclustered_met_variations_PFNano(
 
     # Check if using scouting data (rho) or standard NanoAOD (fixedGridRhoFastjetAll)
     rho = events.rho if "rho" in events.fields else events.fixedGridRhoFastjetAll
-    jets_corrected_nom = jet_factory[correction_key].build(make_jets_for_jerc(events,jet_coll, rho, correction_key), jerc_cache)
+    # Use CorrT1METJet for T1 MET jets if available, otherwise fall back to jet_coll
+    t1met_coll = "CorrT1METJet" if "CorrT1METJet_pt" in events.fields else jet_coll
+    jets_corrected_nom = jet_factory[correction_key].build(make_jets_for_jerc(events, t1met_coll, rho, correction_key), jerc_cache)
 
     #extract corrected jets
     jet_pt_corr_nom  = jets_corrected_nom.pt
-    jet_phi_corr_nom  = events[f"{jet_coll}_phi"]
+    jet_phi_corr_nom  = events[f"{t1met_coll}_phi"]
 
     # Use truly raw pt (before scouting JEC) as baseline for T1 formula when available
-    pt_raw_scouting_field = f"{jet_coll}_pt_raw_scouting"
+    pt_raw_scouting_field = f"{t1met_coll}_pt_raw_scouting"
     if pt_raw_scouting_field in events.fields:
         jet_pt_raw = events[pt_raw_scouting_field]
     else:

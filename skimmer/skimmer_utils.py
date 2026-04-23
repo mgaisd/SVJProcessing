@@ -143,6 +143,9 @@ def apply_scouting_jec_corrections(events, year="2017"):
     if "Jet_pt" in events.fields:
         events = _apply_scouting_jec_to_collection(events, "Jet", csets["Jet"])
 
+    if "CorrT1METJet_pt" in events.fields:
+        events = _apply_scouting_jec_to_collection(events, "CorrT1METJet", csets["Jet"])
+
     if "FatJet_pt" in events.fields:
         events = _apply_scouting_jec_to_collection(events, "FatJet", csets["FatJet"])
 

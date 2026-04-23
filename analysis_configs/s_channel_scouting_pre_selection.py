@@ -125,6 +125,8 @@ def process(events, cut_flow, year, primary_dataset="", pn_tagger=False, **kwarg
     skimmer_utils.update_cut_flow(cut_flow, "MT selection", events)
 
     #CZZ: MET filter event: MISSING (might not exist in scouting)
+    # apply PV_isGood filter from ntuplizer or reimplement (this is the goodVertices filter)
+    # experimental bad muon filters (to be implemented here)
 
     #CZZ: Phi spike filter: MISSING
 
