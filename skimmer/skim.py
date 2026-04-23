@@ -132,6 +132,11 @@ def add_coffea_args(parser):
         default="",
     )
     parser.add_argument(
+        "-ds", "--dataset_name",
+        help="Name of the dataset being processed (e.g. TTJets_TuneCP5)",
+        default="",
+    )
+    parser.add_argument(
         "-c", "--chunk_size",
         help="Size of the data chunks (default=%(default)s)",
         default=10000,
@@ -327,6 +332,7 @@ def __prepare_uproot_job_kwargs_from_coffea_args(args):
         y,
         year=args.year,
         primary_dataset=args.primary_dataset,
+        dataset_name=args.dataset_name,
         pn_tagger=args.pn_tagger,
     )
 

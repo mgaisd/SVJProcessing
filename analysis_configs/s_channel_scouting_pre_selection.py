@@ -8,8 +8,14 @@ from analysis_configs.met_filters import met_filters_nanoaod as met_filters
 from analysis_configs import sequences_s_channel_scouting as sequences
 
 
-def process(events, cut_flow, year, primary_dataset="", pn_tagger=False, **kwargs):
+def process(events, cut_flow, year, primary_dataset="", dataset_name="", pn_tagger=False, **kwargs):
     """SVJ s-channel scouting pre-selection."""
+
+    # TT stitching: for the inclusive TTJets sample, remove events covered by
+    # the HT-binned samples (LHE_HT >= 600 GeV) to avoid double-counting
+    if "TTJets_TuneCP5" in dataset_name and len(events) != 0:
+        events = events[events.lheHT < 600]
+    skimmer_utils.update_cut_flow(cut_flow, "TTStitching", events)
 
     # Trigger event selection
     triggers = getattr(trg, f"s_channel_scouting")
@@ -124,9 +130,13 @@ def process(events, cut_flow, year, primary_dataset="", pn_tagger=False, **kwarg
     
     skimmer_utils.update_cut_flow(cut_flow, "MT selection", events)
 
-    #CZZ: MET filter event: MISSING (might not exist in scouting)
-    # apply PV_isGood filter from ntuplizer or reimplement (this is the goodVertices filter)
-    # experimental bad muon filters (to be implemented here)
+    # MET filters
+    # apply PV_isGood filter from ntuplizer 
+    if len(events) != 0:
+        events = events[events.PV_isGood == 1]
+        skimmer_utils.update_cut_flow(cut_flow, "good vertices filter", events)
+    
+    # could implement experimental bad muon filters (official ones are not reproducible in scouting)
 
     #CZZ: Phi spike filter: MISSING
 
