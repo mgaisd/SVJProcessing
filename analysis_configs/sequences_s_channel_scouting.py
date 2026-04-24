@@ -110,7 +110,7 @@ def add_ak4_jet_id_branch(events):
     CHM = events.Jet_chargedMultiplicity
     NumConst = events.Jet_nConstituents
 
-    passID = ((abs(events.Jets_eta) <= 2.6)
+    passID = ((abs(events.Jet_eta) <= 2.6)
                    & (CHM > 0)
                    & (events.Jet_chargedHadronEnergyFraction > 0)
                    & (events.Jet_neutralHadronEnergyFraction < 0.9)
@@ -121,7 +121,7 @@ def add_ak4_jet_id_branch(events):
 
     passID = as_type(passID, int)
 
-    events["Jets_jetId"] = passID
+    events["Jet_jetId"] = passID
 
     return events
 
@@ -188,11 +188,11 @@ def add_good_ak4_jet_branch(events):
     events = add_ak4_jet_id_branch(events)
     ak4_jets = ak.zip(
         {
-            "pt": events.Jets_pt,
-            "mass": events.Jets_mass,
-            "eta": events.Jets_eta,
-            "phi": events.Jets_phi,
-            "id": events.Jets_jetId,
+            "pt": events.Jet_pt,
+            "mass": events.Jet_mass,
+            "eta": events.Jet_eta,
+            "phi": events.Jet_phi,
+            "id": events.Jet_jetId,
         },
         with_name="PtEtaPhiMLorentzVector",
     )
@@ -203,8 +203,18 @@ def add_good_ak4_jet_branch(events):
     )
 
     #add new branch to the events
-    events["Jets_isGood"] = is_good_analysis_ak4_jet
+    events["Jet_isGood"] = is_good_analysis_ak4_jet
 
+    return events
+
+
+def add_good_pv_branch(events):
+    is_good_pv = (
+        (events.PV_isValidVtx == 1)
+        & (abs(events.PV_z) <= 24)
+        & ((events.PV_x**2 + events.PV_y**2) < 4)
+    )
+    events["PV_isGood"] = as_type(is_good_pv, int)
     return events
 
 

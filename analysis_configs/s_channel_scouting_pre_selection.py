@@ -25,13 +25,13 @@ def process(events, cut_flow, year, primary_dataset="", dataset_name="", pn_tagg
         lumi_mask = LumiMask(GOLDEN_JSON_PATHS[year])
         mask = lumi_mask(events.run, events.lumSec)
         events = events[mask]
-    skimmer_utils.update_cut_flow(cut_flow, "GoldenJSON", events)
+        skimmer_utils.update_cut_flow(cut_flow, "GoldenJSON", events)
 
     # TT stitching: for the inclusive TTJets sample, remove events covered by
     # the HT-binned samples (LHE_HT >= 600 GeV) to avoid double-counting
     if "TTJets_TuneCP5" in dataset_name and len(events) != 0:
         events = events[events.lheHT < 600]
-    skimmer_utils.update_cut_flow(cut_flow, "TTStitching", events)
+        skimmer_utils.update_cut_flow(cut_flow, "TTStitching", events)
 
     # Trigger event selection
     triggers = getattr(trg, f"s_channel_scouting")
@@ -58,8 +58,8 @@ def process(events, cut_flow, year, primary_dataset="", dataset_name="", pn_tagg
     # needs to have veto leptons and good ak4 jets already
     if len(events) != 0:
         good_ak4_jets = ak.zip({
-            "eta": events.Jets_eta[events.Jets_isGood],
-            "phi": events.Jets_phi[events.Jets_isGood],
+            "eta": events.Jet_eta[events.Jet_isGood],
+            "phi": events.Jet_phi[events.Jet_isGood],
         })
         veto_electrons = ak.zip({
             "eta": events.Electron_eta[events.Electron_isVeto],
@@ -146,10 +146,12 @@ def process(events, cut_flow, year, primary_dataset="", dataset_name="", pn_tagg
     
     skimmer_utils.update_cut_flow(cut_flow, "MT selection", events)
 
-    # MET filters
-    # apply PV_isGood filter from ntuplizer 
+    # MET filters — good primary vertex filter
+    # Require PV_isValidVtx == 1, |PV_z| <= 24, sqrt(PV_x²+PV_y²) < 2
     if len(events) != 0:
-        events = events[events.PV_isGood == 1]
+        events = sequences.add_good_pv_branch(events)
+        filter_good_pv = ak.sum(events.PV_isGood, axis=1) >= 1
+        events = events[filter_good_pv]
         skimmer_utils.update_cut_flow(cut_flow, "good vertices filter", events)
     
     # could implement experimental bad muon filters (official ones are not reproducible in scouting)

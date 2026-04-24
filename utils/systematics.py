@@ -622,38 +622,50 @@ def calc_jerc_variations_PFNano(
     
     # Check if using scouting data (rho) or standard NanoAOD (fixedGridRhoFastjetAll)
     rho = events.rho if "rho" in events.fields else events.fixedGridRhoFastjetAll
-    # Use CorrT1METJet for T1 MET jets if available, otherwise fall back to jet_coll
-    t1met_coll = "CorrT1METJet" if "CorrT1METJet_pt" in events.fields else jet_coll
-    jets_input = make_jets_for_jerc(events, t1met_coll, rho, correction_key)
+
+    # Apply JERCs to the main jet collection (Jet or FatJet) — output saved to file
+    jets_input = make_jets_for_jerc(events, jet_coll, rho, correction_key)
     jets_corrected = jet_factory[correction_key].build(jets_input, jerc_cache)
 
-        
     #extract the direction of the variation
     direction = "up" if "up" in variation else "down"
 
     #make dummy x_ratio
     x_ratio = ak.ones_like(jets_corrected.pt)
 
-    #extract corrections to jets
+    #extract corrections to jets (from jet_coll)
     pt_corr = eval(f"jets_corrected.{access_jerc_corr_jets}.{direction}.pt")
     eta_corr = eval(f"jets_corrected.{access_jerc_corr_jets}.{direction}.eta")
     phi_corr = eval(f"jets_corrected.{access_jerc_corr_jets}.{direction}.phi")
     mass_corr = eval(f"jets_corrected.{access_jerc_corr_jets}.{direction}.mass")
 
-    # pt_raw_var is the baseline pt from which the varied correction is computed.
-    # Use truly raw pt (before scouting JEC) when available so the full delta is in T1.
-    _pt_raw_var_factory = eval(f"jets_corrected.{access_jerc_corr_jets}.{direction}.pt_raw")
-    pt_raw_scouting_field = f"{t1met_coll}_pt_raw_scouting"
-    pt_raw_var = events[pt_raw_scouting_field] if pt_raw_scouting_field in events.fields else _pt_raw_var_factory
-    
-    # Extract uncorrected values to save
+    # Extract uncorrected values to save (from jet_coll)
     pt_uncorr = jets_input.pt_raw
     mass_uncorr = jets_input.mass_raw
 
-    met =  None
+    met = None
     met_pt_raw = None
     met_phi_raw = None
     if jet_coll == "Jet":
+        # For T1 MET propagation, use CorrT1METJet if available (AK4 only), else Jet
+        t1met_coll = "CorrT1METJet" if "CorrT1METJet_pt" in events.fields else jet_coll
+        if t1met_coll != jet_coll:
+            # Compute JERCs on CorrT1METJet separately for MET propagation only
+            t1met_jets_input = make_jets_for_jerc(events, t1met_coll, rho, correction_key)
+            t1met_jets_corrected = jet_factory[correction_key].build(t1met_jets_input, {})
+            t1met_pt_corr = eval(f"t1met_jets_corrected.{access_jerc_corr_jets}.{direction}.pt")
+            t1met_phi_corr = eval(f"t1met_jets_corrected.{access_jerc_corr_jets}.{direction}.phi")
+            _t1met_pt_raw_var = eval(f"t1met_jets_corrected.{access_jerc_corr_jets}.{direction}.pt_raw")
+            pt_raw_scouting_field = f"{t1met_coll}_pt_raw_scouting"
+            t1met_pt_raw_var = events[pt_raw_scouting_field] if pt_raw_scouting_field in events.fields else _t1met_pt_raw_var
+        else:
+            # No CorrT1METJet: use Jet corrections for MET propagation too
+            t1met_pt_corr = pt_corr
+            t1met_phi_corr = phi_corr
+            _t1met_pt_raw_var = eval(f"jets_corrected.{access_jerc_corr_jets}.{direction}.pt_raw")
+            pt_raw_scouting_field = f"{jet_coll}_pt_raw_scouting"
+            t1met_pt_raw_var = events[pt_raw_scouting_field] if pt_raw_scouting_field in events.fields else _t1met_pt_raw_var
+
         # Get raw MET - check for RawMET (standard) or ScoutMET (scouting)
         if "RawMET_pt" in events.fields:
             met_pt_raw = events["RawMET_pt"]
@@ -664,7 +676,7 @@ def calc_jerc_variations_PFNano(
         else:
             met_pt_raw = events["MET_pt"]
             met_phi_raw = events["MET_phi"]
-        met = update_met_t1_corr(met_pt_raw, met_phi_raw, pt_corr, phi_corr, pt_raw_var)
+        met = update_met_t1_corr(met_pt_raw, met_phi_raw, t1met_pt_corr, t1met_phi_corr, t1met_pt_raw_var)
 
     #extract corrections to met
     met_ptcorr = None
