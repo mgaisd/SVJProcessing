@@ -156,8 +156,8 @@ def _compute_electron_id(events):
 def _compute_muon_id(events):
     # Loose muon ID: global muon or tracker muon
     passID = (
-        events["Muon_isGlobalMuon"]
-        | events["Muon_isTrackerMuon"]
+        events["Muon_isGlobal"]
+        | events["Muon_isTracker"]
     )
     return as_type(passID, int)
 
@@ -221,12 +221,13 @@ def add_good_pv_branch(events):
 def add_veto_leptons_branches(events):
     electrons, muons = _build_scouting_lepton_collections(events)
     if electrons is None or muons is None:
+        print("Warning: missing electron or muon collections, cannot compute veto lepton branches")
         n_events = ak.num(events.FatJet_pt, axis=0)
-        events["Electron_isVeto"] = ak.Array([[] for _ in range(n_events)])
-        events["Muon_isVeto"] = ak.Array([[] for _ in range(n_events)])
+        events["Electron_isVeto"] = as_type(ak.Array([[]] * n_events), int)
+        events["Muon_isVeto"] = as_type(ak.Array([[]] * n_events), int)
     else:
-        events["Electron_isVeto"] = obj.is_veto_electron(electrons)
-        events["Muon_isVeto"] = obj.is_veto_muon(muons)
+        events["Electron_isVeto"] = as_type(obj.is_veto_electron(electrons), int)
+        events["Muon_isVeto"] = as_type(obj.is_veto_muon(muons), int)
     return events
 
 
@@ -245,8 +246,8 @@ def _build_scouting_lepton_collections(events):
         "Muon_pt",
         "Muon_eta",
         "Muon_combinedMiniIso",
-        "Muon_isGlobalMuon",
-        "Muon_isTrackerMuon",
+        "Muon_isGlobal",
+        "Muon_isTracker",
     ]
 
     if any(field not in events.fields for field in required_fields):

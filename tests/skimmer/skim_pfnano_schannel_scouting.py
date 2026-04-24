@@ -14,12 +14,14 @@ def _files(dataset, *names):
 
 
 def __run_skimmer(input_files, output_file, config, year, primary_dataset, run_particle_net,
-                  corrections_file=None, variation=None):
+                  corrections_file=None, variation=None, dataset_name=None):
     n_workers = 8
     chunk_size = 100000
     executor = "futures"
 
     bash_command = f"python {os.environ['SVJ_PROCESSING_ROOT']}/skimmer/skim.py -i {input_files} -o {output_file} -p {config} -y {year} -e {executor} -n {n_workers} -c {chunk_size} -pd {primary_dataset} -nano_scout -mc"
+    if dataset_name is not None:
+        bash_command += f" -ds {dataset_name}"
     if run_particle_net:
         bash_command += " -pn_tagger"
     if corrections_file is not None:
@@ -33,9 +35,8 @@ def test_execution():
     _cfg = "analysis_configs.s_channel_scouting_pre_selection"
     _year = "2017"
 
-    # Each entry: (year, config, files_list, primary_dataset, corrections_file, variation)
-    # corrections_file and variation are None for nominal runs without JERC.
-    # Fill in real filenames by replacing the PLACEHOLDER_FILE_*.root entries.
+    # Each entry: (year, config, files_list, primary_dataset, corrections_file, variation, dataset_name)
+    # dataset_name is passed as -ds to the skimmer; needed for stitching cuts (e.g. TTJets).
     params_list = [
         # QCD HT1500to2000 — nominal
         (
@@ -45,7 +46,7 @@ def test_execution():
                 "PFNano_ScoutingAOD_FF426860-7C9F-344B-B8E0-860469CDCD52.root",
                 "PFNano_ScoutingAOD_FF8AF46D-23DB-0248-A740-F1DA68B92A78.root",
             ),
-            "dummy", _CORRECTIONS_FILE, None,
+            "dummy", _CORRECTIONS_FILE, None, "QCD_HT1500to2000",
         ),
         # QCD HT1500to2000 — jec_up: exercises the full JERC code path with corrections file
         (
@@ -55,7 +56,7 @@ def test_execution():
                 "PFNano_ScoutingAOD_FF426860-7C9F-344B-B8E0-860469CDCD52.root",
                 "PFNano_ScoutingAOD_FF8AF46D-23DB-0248-A740-F1DA68B92A78.root",
             ),
-            "dummy", _CORRECTIONS_FILE, "jec_up",
+            "dummy", _CORRECTIONS_FILE, "jec_up", "QCD_HT1500to2000",
         ),
         # TTJets_TuneCP5 inclusive — exercises the LHE HT stitching branch
         (
@@ -65,7 +66,7 @@ def test_execution():
                 "PFNano_ScoutingAOD_FFFF2C03-33D7-534C-94AF-B36F62C68395.root",
                 "PFNano_ScoutingAOD_FFFF9923-EB75-1D4C-9FE4-8186A7E33529.root"
             ),
-            "dummy", _CORRECTIONS_FILE, None,
+            "dummy", _CORRECTIONS_FILE, None, "TTJets_TuneCP5",
         ),
         # WJets HT1200to2500 — higher-HT bin for better selection efficiency
         (
@@ -75,7 +76,7 @@ def test_execution():
                 "PFNano_ScoutingAOD_FFC63823-D047-7441-87C2-08015673F604.root",
                 "PFNano_ScoutingAOD_FFF2EDB5-8738-6440-B5E9-AEE2C5F2B86B.root"
             ),
-            "dummy", _CORRECTIONS_FILE, None,
+            "dummy", _CORRECTIONS_FILE, None, "WJetsToLNu_HT-1200To2500",
         ),
         # ZJets HT1200to2500 — higher-HT bin for better selection efficiency
         (
@@ -85,7 +86,7 @@ def test_execution():
                 "PFNano_ScoutingAOD_E31D1C54-3E54-7642-95A1-F6A9FE2B2DDE.root",
                 "PFNano_ScoutingAOD_F0F06B02-8BFB-E842-A277-73C88A921FB4.root"
             ),
-            "dummy", _CORRECTIONS_FILE, None,
+            "dummy", _CORRECTIONS_FILE, None, "ZJetsToNuNu_HT-1200To2500",
         ),
     ]
 
@@ -97,13 +98,13 @@ def test_execution():
         os.makedirs(output_path)
 
     for params in params_list:
-        year, config, files_list, primary_dataset, corrections_file, variation = params
+        year, config, files_list, primary_dataset, corrections_file, variation, dataset_name = params
         input_files = ",".join(files_list)
         output_name = helper.run_bash_command(f'echo {input_files}_$(date +"%Y%m%d-%H%M%S") | shasum | cut -d " " -f1')
         output_file = f"{output_path}/{output_name}.root"
 
         __run_skimmer(input_files, output_file, config, year, primary_dataset, run_particle_net,
-                      corrections_file=corrections_file, variation=variation)
+                      corrections_file=corrections_file, variation=variation, dataset_name=dataset_name)
 
         assert os.path.exists(output_file)
 

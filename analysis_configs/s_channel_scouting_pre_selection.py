@@ -27,10 +27,15 @@ def process(events, cut_flow, year, primary_dataset="", dataset_name="", pn_tagg
         events = events[mask]
         skimmer_utils.update_cut_flow(cut_flow, "GoldenJSON", events)
 
-    # TT stitching: for the inclusive TTJets sample, remove events covered by
-    # the HT-binned samples (LHE_HT >= 600 GeV) to avoid double-counting
+    # TT stitching: avoid double-counting between inclusive and HT-binned samples.
+    # Inclusive keeps lheHT < 600; HT-binned keeps lheHT >= 600 (matching removes
+    # most such events but a small tail can leak below the bin boundary).
+    _ttjets_ht_binned = ["TTJets_HT-600to800", "TTJets_HT-800to1200", "TTJets_HT-1200to2500", "TTJets_HT-2500toInf"]
     if "TTJets_TuneCP5" in dataset_name and len(events) != 0:
         events = events[events.lheHT < 600]
+        skimmer_utils.update_cut_flow(cut_flow, "TTStitching", events)
+    elif any(b in dataset_name for b in _ttjets_ht_binned) and len(events) != 0:
+        events = events[events.lheHT >= 600]
         skimmer_utils.update_cut_flow(cut_flow, "TTStitching", events)
 
     # Trigger event selection
@@ -109,7 +114,7 @@ def process(events, cut_flow, year, primary_dataset="", dataset_name="", pn_tagg
         filter_rt = as_type(filter_rt, bool)   #not needed
         events = events[filter_rt]
     
-    skimmer_utils.update_cut_flow(cut_flow, "RT selection", events)
+    skimmer_utils.update_cut_flow(cut_flow, "RT_selection", events)
 
 
     #apply DeltaEta filter (not applied because it is used as a control region)
@@ -144,7 +149,7 @@ def process(events, cut_flow, year, primary_dataset="", dataset_name="", pn_tagg
         filter_mt = as_type(filter_mt, bool)
         events = events[filter_mt]
     
-    skimmer_utils.update_cut_flow(cut_flow, "MT selection", events)
+    skimmer_utils.update_cut_flow(cut_flow, "MT_selection", events)
 
     # MET filters — good primary vertex filter
     # Require PV_isValidVtx == 1, |PV_z| <= 24, sqrt(PV_x²+PV_y²) < 2
@@ -152,7 +157,7 @@ def process(events, cut_flow, year, primary_dataset="", dataset_name="", pn_tagg
         events = sequences.add_good_pv_branch(events)
         filter_good_pv = ak.sum(events.PV_isGood, axis=1) >= 1
         events = events[filter_good_pv]
-        skimmer_utils.update_cut_flow(cut_flow, "good vertices filter", events)
+        skimmer_utils.update_cut_flow(cut_flow, "goodVerticesFilter", events)
     
     # could implement experimental bad muon filters (official ones are not reproducible in scouting)
 
@@ -179,7 +184,7 @@ def process(events, cut_flow, year, primary_dataset="", dataset_name="", pn_tagg
         filter_deltaphi = as_type(filter_deltaphi, bool)
         events = events[filter_deltaphi]
 
-    skimmer_utils.update_cut_flow(cut_flow, "DeltaPhiMin selection", events)
+    skimmer_utils.update_cut_flow(cut_flow, "DeltaPhiMin_selection", events)
     
     if len(events) != 0:
         events = sequences.add_analysis_branches(events)
