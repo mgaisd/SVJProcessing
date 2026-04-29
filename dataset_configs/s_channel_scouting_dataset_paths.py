@@ -19,7 +19,7 @@
 ################################################################################
 
 
-years = ["2017"]
+years = ["2017","2018"]
 
 datasets_info = {
     year: {} for year in years
@@ -112,7 +112,7 @@ zjets_bins = [
     "ZJetsToNuNu_HT-1200To2500",
     "ZJetsToNuNu_HT-2500ToInf",
 ]
-    
+
 
 
 for year in years:
@@ -123,7 +123,7 @@ for year in years:
                 #"path": f"/pnfs/lcg.cscs.ch/cms/trivcat/store/user/cazzanig/darkshowers/samples/scouting/PFNano/QCD_HT_binned_2018_v0/{bin}/",
                 "redirector": "root://cmsdcache-kit-disk.gridka.de:1094/",
                 #"path": f"/store/user/mgaisdor/SVJScouting_ntuples/MC/{year}/{bin}/",
-                "path": f"/store/user/mgaisdor/SVJScouting_ntuples/MC/{year}_v3/{bin}/",
+                "path": f"/store/user/mgaisdor/SVJScouting_ntuples/MC/{year}_v4/{bin}/",
                 "regex": f"",
                 
             },
@@ -138,7 +138,7 @@ for year in years:
                 #"redirector": "root://storage01.lcg.cscs.ch:1096//",
                 #"path": f"/pnfs/lcg.cscs.ch/cms/trivcat/store/user/cazzanig/darkshowers/samples/scouting/PFNano/QCD_HT_binned_2018_v0/{bin}/",
                 "redirector": "root://cmsdcache-kit-disk.gridka.de:1094/",
-                "path": f"/store/user/mgaisdor/SVJScouting_ntuples/MC/{year}_v3/{bin}/",
+                "path": f"/store/user/mgaisdor/SVJScouting_ntuples/MC/{year}_v4/{bin}/",
                 "regex": f"",
                 
             },
@@ -153,7 +153,7 @@ for year in years:
                 #"redirector": "root://storage01.lcg.cscs.ch:1096//",
                 #"path": f"/pnfs/lcg.cscs.ch/cms/trivcat/store/user/cazzanig/darkshowers/samples/scouting/PFNano/QCD_HT_binned_2018_v0/{bin}/",
                 "redirector": "root://cmsdcache-kit-disk.gridka.de:1094/",
-                "path": f"/store/user/mgaisdor/SVJScouting_ntuples/MC/{year}_v3/{bin}/",
+                "path": f"/store/user/mgaisdor/SVJScouting_ntuples/MC/{year}_v4/{bin}/",
                 "regex": f"",
                 
             },
@@ -168,7 +168,7 @@ for year in years:
                 #"redirector": "root://storage01.lcg.cscs.ch:1096//",
                 #"path": f"/pnfs/lcg.cscs.ch/cms/trivcat/store/user/cazzanig/darkshowers/samples/scouting/PFNano/QCD_HT_binned_2018_v0/{bin}/",
                 "redirector": "root://cmsdcache-kit-disk.gridka.de:1094/",
-                "path": f"/store/user/mgaisdor/SVJScouting_ntuples/MC/{year}_v3/{bin}/",
+                "path": f"/store/user/mgaisdor/SVJScouting_ntuples/MC/{year}_v4/{bin}/",
                 "regex": f"",
                 
             },
@@ -183,10 +183,32 @@ for year in years:
                 #"redirector": "root://storage01.lcg.cscs.ch:1096//",
                 #"path": f"/pnfs/lcg.cscs.ch/cms/trivcat/store/user/cazzanig/darkshowers/samples/scouting/PFNano/QCD_HT_binned_2018_v0/{bin}/",
                 "redirector": "root://cmsdcache-kit-disk.gridka.de:1094/",
-                "path": f"/store/user/mgaisdor/SVJScouting_ntuples/MC/{year}_v3/{bin}/",
+                "path": f"/store/user/mgaisdor/SVJScouting_ntuples/MC/{year}_v4/{bin}/",
                 "regex": f"",
                 
             },
         ]
         for bin in zjets_bins
     })
+
+datasets_info["2017"].update({
+    run: [
+        {
+            "redirector": "root://cmsdcache-kit-disk.gridka.de:1094/",
+            "path": f"/store/user/mgaisdor/SVJScouting_ntuples/Data/2017_v2/{run}",
+            "regex": f"",
+        },
+    ]
+    for run in ["Run2017C", "Run2017D", "Run2017E", "Run2017F"]
+})
+
+datasets_info["2018"].update({
+    run: [
+        {
+            "redirector": "root://cmsdcache-kit-disk.gridka.de:1094/",
+            "path": f"/store/user/mgaisdor/SVJScouting_ntuples/Data/2018_v2/{run}",
+            "regex": f"",
+        },
+    ]
+    for run in ["Run2018A", "Run2018B", "Run2018C", "Run2018D"]
+})

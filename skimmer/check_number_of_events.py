@@ -103,6 +103,7 @@ def main():
         schemaclass=schema,
         entry_stop=10,
     ).events()
+    #is_data = True # manually set for testing
     is_data = skimmer_utils.is_data(events_file_0)
 
     df = pd.read_csv(args.input_files_list)

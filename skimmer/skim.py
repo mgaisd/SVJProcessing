@@ -21,6 +21,7 @@ class Skimmer(processor.ProcessorABC):
             process_function,
             year=2018,
             is_mc=False,
+            run_era=None,
             variation=None,
             weight_variations=[],
             nano_aod=False,
@@ -34,7 +35,12 @@ class Skimmer(processor.ProcessorABC):
         self.nano_aod = nano_aod
         self.pfnano_corr_file = pfnano_corr_file
         self.apply_scouting_jec = apply_scouting_jec
-        self.is_mc = "mc" if is_mc else "data"
+        if is_mc:
+            self.run = "mc"
+        elif run_era:
+            self.run = f"data{run_era}"
+        else:
+            self.run = "data"
         self.year = year
 
     def process(self, events):
@@ -90,7 +96,7 @@ class Skimmer(processor.ProcessorABC):
 
 
         if self.nano_aod:
-            events = skimmer_utils.apply_variation_pfnano(events, variation=self.variation, year=self.year, run=self.is_mc, pfnano_sys_file=self.pfnano_corr_file)
+            events = skimmer_utils.apply_variation_pfnano(events, variation=self.variation, year=self.year, run=self.run, pfnano_sys_file=self.pfnano_corr_file)
         else:
             events = skimmer_utils.apply_variation(events, self.variation)
 
@@ -233,6 +239,13 @@ def add_coffea_args(parser):
         help='Disable custom scouting JEC residual corrections before official PFNano variations',
         default=False,
         action='store_true',
+    )
+    parser.add_argument(
+        '-run_era', '--run_era',
+        help='Data run era for per-run JEC residuals (e.g. RunA, RunB, C, D, BCD, EF, GH). '
+             'Only used for data. Combined with "data" to form the factory key, e.g. "dataRunA".',
+        type=str,
+        default=None,
     )
 
     parser.add_argument(
@@ -380,6 +393,7 @@ def __prepare_uproot_job_kwargs_from_coffea_args(args):
             process_function,
             year=args.year,
             is_mc=args.is_mc,
+            run_era=args.run_era,
             variation=variation_type,
             weight_variations=weight_variations,
             nano_aod=args.nano_aod or args.nano_aod_scouting,

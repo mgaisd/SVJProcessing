@@ -28,8 +28,7 @@ def process(events, cut_flow, year, primary_dataset="", dataset_name="", pn_tagg
         skimmer_utils.update_cut_flow(cut_flow, "GoldenJSON", events)
 
     # TT stitching: avoid double-counting between inclusive and HT-binned samples.
-    # Inclusive keeps lheHT < 600; HT-binned keeps lheHT >= 600 (matching removes
-    # most such events but a small tail can leak below the bin boundary).
+    # Inclusive keeps lheHT < 600; HT-binned keeps lheHT >= 600 
     _ttjets_ht_binned = ["TTJets_HT-600to800", "TTJets_HT-800to1200", "TTJets_HT-1200to2500", "TTJets_HT-2500toInf"]
     if "TTJets_TuneCP5" in dataset_name and len(events) != 0:
         events = events[events.lheHT < 600]
@@ -157,7 +156,7 @@ def process(events, cut_flow, year, primary_dataset="", dataset_name="", pn_tagg
         events = sequences.add_good_pv_branch(events)
         filter_good_pv = ak.sum(events.PV_isGood, axis=1) >= 1
         events = events[filter_good_pv]
-        skimmer_utils.update_cut_flow(cut_flow, "goodVerticesFilter", events)
+    skimmer_utils.update_cut_flow(cut_flow, "goodVerticesFilter", events)
     
     # could implement experimental bad muon filters (official ones are not reproducible in scouting)
 
