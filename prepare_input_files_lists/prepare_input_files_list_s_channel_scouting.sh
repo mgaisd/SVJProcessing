@@ -15,7 +15,7 @@ selection_name=s_channel_scouting_pre_selection
 #module=analysis_configs.t_channel_lost_lepton_control_region
 #selection_name=t_channel_lost_lepton_control_region
 
-year=2017
+year=2018
 
 dataset_names=(
     #
@@ -120,14 +120,14 @@ dataset_names=(
     # scouting_data
     #
     # Run2017C
-    Run2017D
-    Run2017E
-    Run2017F
+    # Run2017D
+    # Run2017E
+    # Run2017F
 
-    # Run2018A
-    # Run2018B
-    # Run2018C
-    # Run2018D
+    Run2018A
+    Run2018B
+    Run2018C
+    Run2018D
 )
 
 

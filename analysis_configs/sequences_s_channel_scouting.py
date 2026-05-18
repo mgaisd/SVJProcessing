@@ -130,25 +130,28 @@ def _compute_electron_id(events):
     # Barrel: |eta| < 1.479, Endcap: 1.479 < |eta| < 2.5
     is_barrel = abs(events["Electron_eta"]) < 1.479
 
-    # Approximate energy: E_SC ~ pt * cosh(eta) (not really supercluster energy, but best proxy)
-    e_sc = events["Electron_pt"] * np.cosh(events["Electron_eta"])
-    # rho: median energy density, used for pile-up correction in H/E
-    rho = events["rho"]
+    sieie_cut = ak.where(is_barrel, 0.015, 0.045)
+    detain_cut = ak.where(is_barrel, 0.008, 0.012)
+    dphiin_cut = 0.06
+    hoe_cut = 0.2
+    ecaliso_cut = ak.where(is_barrel, 0.25, 0.1)
+    hcaliso_cut = ak.where(is_barrel, 0.4, 0.6)
+    trkiso_cut = 0.001
+    #ooEMOop_cut = ak.where(is_barrel, 0.209, 0.132)
+    #mhits_cut = ak.where(is_barrel, 2, 3)
 
-    sieie_cut = ak.where(is_barrel, 0.0126, 0.0457)
-    detain_cut = ak.where(is_barrel, 0.00463, 0.00814)
-    dphiin_cut = ak.where(is_barrel, 0.148, 0.19)
-    hoe_cut = ak.where(is_barrel, 0.05 + 1.16 / e_sc + 0.0324 * rho / e_sc, 0.05 + 2.54 / e_sc + 0.183 * rho / e_sc)
-    ooEMOop_cut = ak.where(is_barrel, 0.209, 0.132)
-    mhits_cut = ak.where(is_barrel, 2, 3)
+    electron_energy = events["Electron_pt"] * np.cosh(events["Electron_eta"])
 
     passID = (
         (events["Electron_sieie"] < sieie_cut)
         & (abs(events["Electron_detain"]) < detain_cut)
         & (abs(events["Electron_dphiin"]) < dphiin_cut)
         & (events["Electron_hoe"] < hoe_cut)
-        & (abs(events["Electron_ooEMOop"]) < ooEMOop_cut)
-        & (events["Electron_mHits"] <= mhits_cut)
+        & (events["Electron_ecaliso"] / electron_energy < ecaliso_cut)
+        & (events["Electron_hcaliso"] / electron_energy < hcaliso_cut)
+        & (events["Electron_trkiso"] / electron_energy < trkiso_cut)
+        #& (abs(events["Electron_ooEMOop"]) < ooEMOop_cut)
+        #& (events["Electron_mHits"] <= mhits_cut)
     )
     return as_type(passID, int)
 
@@ -240,8 +243,11 @@ def _build_scouting_lepton_collections(events):
         "Electron_detain",
         "Electron_dphiin",
         "Electron_hoe",
-        "Electron_ooEMOop",
-        "Electron_mHits",
+        "Electron_ecaliso",
+        "Electron_hcaliso",
+        "Electron_trkiso",
+        #"Electron_ooEMOop",
+        #"Electron_mHits",
         "rho",
         "Muon_pt",
         "Muon_eta",

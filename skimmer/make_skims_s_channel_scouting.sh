@@ -8,7 +8,7 @@ N_WORKERS=40
 PORT=3719 # port for dask scheduler, needs to be opened by admins
 #N_WORKERS=6
 EXECUTOR=futures     # local job
-FORCE_RECREATE=1 # 1 to recreate output file if it exists, 0 else
+FORCE_RECREATE=0 # 1 to recreate output file if it exists, 0 else
 FIRST_FILE=0
 LAST_FILE=-1 #150  # Use -1 to skim all input files
 
