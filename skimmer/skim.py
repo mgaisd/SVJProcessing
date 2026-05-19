@@ -53,6 +53,10 @@ class Skimmer(processor.ProcessorABC):
             events = skimmer_utils.apply_scouting_jec_corrections(events, year=str(self.year))
 
         if skimmer_utils.is_mc(events):
+            # Always apply nominal PU reweighting if a corrections file is provided
+            if self.nano_aod and self.pfnano_corr_file is not None:
+                events = skimmer_utils.apply_pu_nominal_weight(events, self.year, pfnano_sys_file=self.pfnano_corr_file, is_nano=self.nano_aod)
+
             # Calculate and store the weight variations
             if "pu" in self.weight_variations:
                 events, _, _, _ = skimmer_utils.apply_pu_variations(events,self.year,pfnano_sys_file=self.pfnano_corr_file,is_nano=self.nano_aod,multiply_by_pu_weight=False)

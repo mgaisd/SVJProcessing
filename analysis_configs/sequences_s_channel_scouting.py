@@ -131,12 +131,12 @@ def _compute_electron_id(events):
     is_barrel = abs(events["Electron_eta"]) < 1.479
 
     sieie_cut = ak.where(is_barrel, 0.015, 0.045)
+    hoe_cut = 0.2
     detain_cut = ak.where(is_barrel, 0.008, 0.012)
     dphiin_cut = 0.06
-    hoe_cut = 0.2
     ecaliso_cut = ak.where(is_barrel, 0.25, 0.1)
-    hcaliso_cut = ak.where(is_barrel, 0.4, 0.6)
     trkiso_cut = 0.001
+    hcaliso_cut = ak.where(is_barrel, 0.4, 0.6)
     #ooEMOop_cut = ak.where(is_barrel, 0.209, 0.132)
     #mhits_cut = ak.where(is_barrel, 2, 3)
 
@@ -406,6 +406,71 @@ def add_dark_quark_matching(events):
     
     return events
 
+
+def apply_scouting_phi_spike_filter(events, year):
+    """Phi spike filter using only the subleading good AK8 jet.
+    Bin centers and radius are read from data/dead_cells/outlier_centers_{year}.txt.
+    The distance check follows the convention dist² < rad (consistent with apply_phi_spike_filter).
+    """
+    import os
+
+    data_dir = os.path.join(
+        os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+        "data", "dead_cells"
+    )
+    filepath = os.path.join(data_dir, f"outlier_centers_{year}.txt")
+
+    rad = 0.028816 * 0.35  # half-diagonal of eta-phi cell, factor 0.35 optimized for s/b sensitivity
+
+    eta_centers = []
+    phi_centers = []
+    with open(filepath) as f:
+        for line in f:
+            stripped = line.strip()
+            if stripped.startswith("#") or not stripped:
+                continue
+            parts = stripped.split()
+            eta_centers.append(float(parts[0]))
+            phi_centers.append(float(parts[1]))
+
+    eta_arr = np.array(eta_centers)
+    phi_arr = np.array(phi_centers)
+
+    # Subleading good AK8 jet (index 1)
+    good_jet_eta = events.FatJet_eta[events.FatJet_isGood]
+    good_jet_phi = events.FatJet_phi[events.FatJet_isGood]
+    sub_eta = ak.to_numpy(ak.fill_none(ak.pad_none(good_jet_eta, 2)[:, 1], np.inf))
+    sub_phi = ak.to_numpy(ak.fill_none(ak.pad_none(good_jet_phi, 2)[:, 1], np.inf))
+
+    # Reject events where subleading jet falls within rad of any dead cell center
+    # Convention: dist² < rad (same as apply_phi_spike_filter)
+    deta = sub_eta[:, np.newaxis] - eta_arr[np.newaxis, :]
+    dphi = sub_phi[:, np.newaxis] - phi_arr[np.newaxis, :]
+    in_spike = np.any(deta**2 + dphi**2 < rad, axis=1)
+
+    events = events[~in_spike]
+    return events
+
+def apply_gap_jet_veto(events):
+    # Veto events with high pt AK4 jets with high photon energy fraction, mostly occuring in the gap between barrel and endcap
+
+    ak4_jets = ak.zip(
+        {
+            "pt": events.Jet_pt,
+            "eta": events.Jet_eta,
+            "phi": events.Jet_phi,
+            "mass": events.Jet_mass,
+            "photonEnergyFraction": events.Jet_photonEnergyFraction,
+        },
+        with_name="PtEtaPhiMLorentzVector",
+    )
+
+    lead_jet = ak.pad_none(ak4_jets, 1)[:, 0]
+    veto_mask = (
+        (ak.fill_none(lead_jet.pt, 0) > 1000)
+        & (ak.fill_none(lead_jet.photonEnergyFraction, 0) > 0.7)
+    )
+    return events[~veto_mask]
 
 def remove_collections(events):
     #remove branch called genModel, hltResultName

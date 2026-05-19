@@ -161,7 +161,15 @@ def process(events, cut_flow, year, primary_dataset="", dataset_name="", pn_tagg
     
     # could implement experimental bad muon filters (official ones are not reproducible in scouting)
 
-    #CZZ: Phi spike filter: MISSING
+    # Phi spike filter: check subleading good AK8 jet vs dead cells
+    if len(events) != 0:
+        events = sequences.apply_scouting_phi_spike_filter(events, year)
+    skimmer_utils.update_cut_flow(cut_flow, "PhiSpikeFilter", events)
+
+    # Gap jet veto: veto events with high pt leading AK4 jets with high photon energy fraction (mostly important for data/MC in the tails)
+    if len(events) != 0:
+        events = sequences.apply_gap_jet_veto(events)
+    skimmer_utils.update_cut_flow(cut_flow, "GapJetVeto", events)
 
     # Delta phi min cut
     if len(events) != 0:

@@ -684,7 +684,6 @@ def __add_weight_variations(events, variation_up, variation_down, variation_name
 
     if "PU" in variation_name:
         nominal_weights = nominal_weights*computed_nominal_weights
-        events[f"{weight_name}{variation_name}"] = nominal_weights
     #    sumw_nom = ak.sum(nominal_weights)
 
     weights_up = nominal_weights * variation_up
@@ -807,12 +806,48 @@ def apply_ps_variations(events,is_nano=False,ps_type="ISR", multiply_by_pu_weigh
    
 
 
+def apply_pu_nominal_weight(events, year, pfnano_sys_file, is_nano=False):
+    """Compute and store the nominal PU weight (genWeightPU = genWeight * pu_nom).
+
+    Args:
+        events (ak.Array)
+        year (str)
+        pfnano_sys_file: path to coffea corrections file
+        is_nano (bool)
+
+    Returns:
+        ak.Array: events with genWeightPU added
+    """
+    if is_nano:
+        if "Pileup_nTrueInt" in events.fields:
+            pu_nTrueInt = events.Pileup_nTrueInt
+        elif "Pileup_nPU" in events.fields:
+            pu_nTrueInt = events.Pileup_nPU
+        else:
+            return events
+        variations_factory = load(pfnano_sys_file)
+    else:
+        raise NotImplementedError()
+
+    pu_nom, _, _ = variations_factory["get_pu_weight"](year, pu_nTrueInt)
+
+    weight_name = "Weight" if is_tree_maker(events) else "genWeight"
+    events[f"{weight_name}PU"] = events[weight_name] * pu_nom
+
+    return events
+
+
 def apply_pu_variations(events, year, pfnano_sys_file=None , is_nano=False, multiply_by_pu_weight=False):
 
     # Normalize the array of pdf weights by the first entry
     if is_nano:
-       pu_nTrueInt = events.Pileup_nTrueInt
-       variations_factory = load(pfnano_sys_file)
+        if "Pileup_nTrueInt" in events.fields:
+            pu_nTrueInt = events.Pileup_nTrueInt
+        elif "Pileup_nPU" in events.fields:
+            pu_nTrueInt = events.Pileup_nPU
+        else:
+            raise RuntimeError("Cannot compute PU variations: neither 'Pileup_nTrueInt' nor 'Pileup_nPU' field found in events.")
+        variations_factory = load(pfnano_sys_file)
 
     else:
         raise NotImplementedError()
