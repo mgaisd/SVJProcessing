@@ -685,7 +685,7 @@ def __add_weight_variations(events, variation_up, variation_down, variation_name
     if "PU" in variation_name:
         nominal_weights = nominal_weights*computed_nominal_weights
         events[f"{weight_name}{variation_name}"] = nominal_weights
-    #    sumw_nom = ak.sum(nominal_weights)
+
 
     weights_up = nominal_weights * variation_up
     weights_down = nominal_weights * variation_down
@@ -694,13 +694,10 @@ def __add_weight_variations(events, variation_up, variation_down, variation_name
     sumw_up = ak.sum(weights_up)
     sumw_down = ak.sum(weights_down)
 
-    if multiply_by_pu_weights:
-        nominal_weights = nominal_weights*events["genWeightPU"]
-
     # Create the new branches
     if multiply_by_pu_weights:
-        events[f"{weight_name}{variation_name}UpPUNom"] = weights_up
-        events[f"{weight_name}{variation_name}DownPUNom"] = weights_down
+        events[f"{weight_name}{variation_name}UpPUNom"] = weights_up*events["genWeightPU"]
+        events[f"{weight_name}{variation_name}DownPUNom"] = weights_down*events["genWeightPU"]
     else:
         events[f"{weight_name}{variation_name}Up"] = weights_up
         events[f"{weight_name}{variation_name}Down"] = weights_down
@@ -804,9 +801,6 @@ def apply_ps_variations(events,is_nano=False,ps_type="ISR", multiply_by_pu_weigh
     return __add_weight_variations(events, variation_up, variation_down, f"PS{ps_type}", computed_nominal_weights=None, multiply_by_pu_weights=multiply_by_pu_weight)
 
     
-   
-
-
 def apply_pu_variations(events, year, pfnano_sys_file=None , is_nano=False, multiply_by_pu_weight=False):
 
     # Normalize the array of pdf weights by the first entry
@@ -820,6 +814,59 @@ def apply_pu_variations(events, year, pfnano_sys_file=None , is_nano=False, mult
     pu_nom, pu_up, pu_down   = variations_factory["get_pu_weight"](year, pu_nTrueInt)
 
     return __add_weight_variations(events,pu_up, pu_down, "PU", computed_nominal_weights=pu_nom, multiply_by_pu_weights=multiply_by_pu_weight)
+
+
+##### Lund Weights ############
+def apply_lund_variation(events, var, all_events):
+    """Calculate the Lund reweighting variations.
+    
+    This should be done **before** any event selection is applied.
+
+    The following collections/branches are added in place:
+        * WeightLundUp (TreeMaker) / genWeightLundUp (PFNanoAOD)
+        * WeightLundDown (TreeMaker) / genWeightLundDown (PFNanoAOD)
+
+    The definition of the weights includes normalization factors, such that
+    the normalization to unit luminosity is the same for the variations and
+    the nominal weights.
+
+    Args:
+        events (ak.Array)
+        var (str): the Lund variation to apply, choose from:
+            "lundWeight_bquark", "lundWeight_distortion", "lundWeight_prongs",
+            "lundWeight_pt", "lundWeight_stat", "lundWeight_sys", "lundWeight_unclust"
+
+    Returns:
+        ak.Array, float, float: events, sumw up, and sumw down
+    """
+
+    vars = ["lundWeightDistortion", "lundWeightPt",
+            "lundWeightStat", "lundWeightSys"]
+    
+    assert var in vars, f"Invalid Lund variation: {var}. Choose from {vars}."
+
+    # Calculate up/down variations from events passing selection only
+    weight_name = "Weight" if is_tree_maker(events) else "genWeight"
+    nominal_weights = events[weight_name]
+    weights_up = nominal_weights * events[var+'Up']
+    weights_down = nominal_weights * events[var+'Down']
+
+    #Lund variations are already added to the events
+    if not var.startswith("lund"):
+        # Create the new branches
+        events[f"{weight_name}{var}Up"] = weights_up
+        events[f"{weight_name}{var}Down"] = weights_down
+
+    # Calculate up/down variations from all events for normalization purposes 
+    all_nominal_weights = all_events[weight_name]
+    all_weights_up = all_nominal_weights * all_events[var+'Up']
+    all_weights_down = all_nominal_weights * all_events[var+'Down']
+
+    # Compute the sum of weights for the variations
+    sumw_up = ak.sum(all_weights_up)
+    sumw_down = ak.sum(all_weights_down)
+
+    return events, sumw_up, sumw_down
 
 
 ###############################

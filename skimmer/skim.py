@@ -12,7 +12,10 @@ from utils.coffea.n_tree_maker_schema import NTreeMakerSchema
 from utils.coffea.job_submission_helper import get_executor, get_executor_args
 from skimmer import skimmer_utils
 from utils.Logger import *
+from skimmer.skimmer_utils import is_tree_maker
 
+import LundReweighting
+from LundReweighting.svjReweighter import *
 
 class Skimmer(processor.ProcessorABC):
 
@@ -26,6 +29,7 @@ class Skimmer(processor.ProcessorABC):
             nano_aod=False,
             pfnano_corr_file=None,
             apply_scouting_jec=True,
+            lund_reweighting=False,
         ):
 
         self.process_function = process_function
@@ -36,12 +40,24 @@ class Skimmer(processor.ProcessorABC):
         self.apply_scouting_jec = apply_scouting_jec
         self.is_mc = "mc" if is_mc else "data"
         self.year = year
+        self.lund_reweighting = lund_reweighting
 
     def process(self, events):
 
         cut_flow = {}
         skimmer_utils.update_cut_flow(cut_flow, "Initial", events)
 
+
+        if self.lund_reweighting:
+           # returns list of jet level weights for each event
+           events, norm_lund = calculate_lund_weights(events, self.year, subjetMinPt=10.0)
+           # Setup values to add to accumulator for overall normalization of Lund Weights
+           to_norm = ["lundWeightNprongs", "lundWeightNom", "lundWeightPtVars", "lundWeightStatVars", "lundWeightSysUp", "lundWeightSysDown", "lundWeightRawDistortion"]
+           lund_weights = events[[f for f in events.fields if f in to_norm ] ]
+           weight_name = "Weight" if is_tree_maker(events) else "genWeight"
+           lund_weights[weight_name] = events[weight_name]
+
+       
         # Apply scouting JEC corrections to Jet and FatJet before any official JECs/variations
         if self.apply_scouting_jec:
             events = skimmer_utils.apply_scouting_jec_corrections(events, year=str(self.year))
@@ -85,8 +101,7 @@ class Skimmer(processor.ProcessorABC):
                 if "pu" in self.weight_variations:
                     events, sumw_ps_up_pu_nom, sumw_ps_down_pu_nom, _ = skimmer_utils.apply_ps_variations(events,is_nano=self.nano_aod,ps_type="FSR",multiply_by_pu_weight=True)
                     skimmer_utils.update_cut_flow(cut_flow, "InitialPSFSRUpPUNom", sumw=sumw_ps_up_pu_nom)
-                    skimmer_utils.update_cut_flow(cut_flow, "InitialPSFSRDownPUNom", sumw=sumw_ps_down_pu_nom)
-
+                    skimmer_utils.update_cut_flow(cut_flow, "InitialPSFSRDownPUNom", sumw=sumw_ps_down_pu_nom)            
 
 
         if self.nano_aod:
@@ -101,6 +116,12 @@ class Skimmer(processor.ProcessorABC):
             "events": AkArrayAccumulator(ak.copy(events)),
             "cut_flow": DictAccumulator(cut_flow.copy()),
         }
+
+
+
+        if self.lund_reweighting:
+            accumulator["norm_lund"] = DictAccumulator(norm_lund.copy())
+            accumulator["lund_weights"] = AkArrayAccumulator(ak.copy(lund_weights))
 
         return accumulator
 
@@ -280,6 +301,20 @@ def add_coffea_args(parser):
         default=[],
     )
 
+    parser.add_argument(
+        "-lund", "--lund_reweighting",
+        help="Run lund reweight procedure",
+        default=False,
+        action='store_true',
+    )
+
+    parser.add_argument(
+        "-distor", "--distortion",
+        help="Run the second distortion option",
+        default=False,
+        action='store_true',
+    )
+
 
 def __get_arguments():
     parser = argparse.ArgumentParser()
@@ -334,6 +369,7 @@ def __prepare_uproot_job_kwargs_from_coffea_args(args):
         primary_dataset=args.primary_dataset,
         dataset_name=args.dataset_name,
         pn_tagger=args.pn_tagger,
+        lund_reweighting=args.lund_reweighting,
     )
 
     executor = get_executor(args.executor_name)
@@ -385,6 +421,7 @@ def __prepare_uproot_job_kwargs_from_coffea_args(args):
             nano_aod=args.nano_aod or args.nano_aod_scouting,
             pfnano_corr_file=args.pfnano_corrections_file,
             apply_scouting_jec=not args.disable_scouting_jec,
+            lund_reweighting=args.lund_reweighting,
         ),
         "executor": executor,
         "executor_args": executor_args,
@@ -433,6 +470,46 @@ def main():
     if len(events) == 0:
         log.warning("No events passed selection")
         return
+    
+
+    if args.lund_reweighting:
+        cut_flow = accumulator["cut_flow"].value
+        norm = accumulator["norm_lund"].value
+        lund_weights = accumulator["lund_weights"].value
+
+        nJetsPerEvent_event = ak.num(events["lundWeightNom"], axis=1)
+        nJetsPerEvent_lw = ak.num(lund_weights["lundWeightNom"], axis=1)
+        to_norm = set([k.split("_")[0] for k in norm.keys()])
+        for k in to_norm:
+            # apply lund weights per-prong, returns reweighted jet level weights
+            events[k] = lund_normalization(events, k, norm, nJetsPerEvent_event)
+            if k in lund_weights.fields: lund_weights[k] = lund_normalization(lund_weights, k, norm, nJetsPerEvent_lw)
+        # Need the nominal to be processed first
+        lund_post(events, 'lundWeightNom')
+        lund_post(lund_weights, 'lundWeightNom')
+        for f in events.fields:
+            if 'lundWeight' not in f: continue
+            if f == 'lundWeightNom': continue
+            # take jet level weights to event level, compute stat and pt variations etc
+            lund_post(events, f, doTestDist=args.distortion)
+            if f in lund_weights.fields: lund_post(lund_weights, f, doTestDist=args.distortion)
+
+        #from plot_lund import plotLundWeights
+        #plotLundWeights(events)
+        nominal_weights_name= "Weight" if is_tree_maker(events) else "genWeight"
+        sumw_lund = ak.sum(lund_weights["lundWeightNom"] * lund_weights[nominal_weights_name])
+        skimmer_utils.update_cut_flow(cut_flow, "InitialLundNominal", sumw=sumw_lund)
+
+        # Normalize the Lund variation weights
+        for f in ["lundWeightPt", "lundWeightStat", "lundWeightSys", "lundWeightDistortion"]:
+            events, sumw_lund_var_up, sumw_lund_var_down = skimmer_utils.apply_lund_variation(events, f, lund_weights)
+            skimmer_utils.update_cut_flow(cut_flow, f"InitialLund{f.capitalize()}Up", sumw=sumw_lund_var_up)
+            skimmer_utils.update_cut_flow(cut_flow, f"InitialLund{f.capitalize()}Down", sumw=sumw_lund_var_down)
+            if "pu" in args.weight_variations:
+                events, sumw_lund_var_up_pu_nom, sumw_lund_var_down_pu_nom = skimmer_utils.apply_lund_variation(events, f, lund_weights, pu_weight=True)
+                skimmer_utils.update_cut_flow(cut_flow, f"InitialLund{f.capitalize()}UpPUNom", sumw=sumw_lund_var_up_pu_nom)
+                skimmer_utils.update_cut_flow(cut_flow, f"InitialLund{f.capitalize()}DownPUNom", sumw=sumw_lund_var_down_pu_nom)
+
 
     if args.cross_section:
         # Add cross-section in the custom PFNanoAOD way
