@@ -28,53 +28,42 @@ datasets_info = {
 # SVJ scouting signal models
 signal_models = [
 
-    # "s-channel_mMed-500_mDark-20_rinv-0.3",
-    # # "s-channel_mMed-500_mDark-20_rinv-0.5",
-    # # "s-channel_mMed-500_mDark-20_rinv-0.7",
+    "s-channel_mMed-500_mDark-20_rinv-0.3",
+    "s-channel_mMed-600_mDark-20_rinv-0.3",
+    "s-channel_mMed-700_mDark-20_rinv-0.3",
+    "s-channel_mMed-800_mDark-20_rinv-0.3",
+    "s-channel_mMed-900_mDark-20_rinv-0.3",
+    "s-channel_mMed-1000_mDark-20_rinv-0.3",
+    "s-channel_mMed-1100_mDark-20_rinv-0.3",
+    "s-channel_mMed-1200_mDark-20_rinv-0.3",
+    "s-channel_mMed-1300_mDark-20_rinv-0.3",
+    "s-channel_mMed-1400_mDark-20_rinv-0.3",
+    "s-channel_mMed-1500_mDark-20_rinv-0.3",
 
-    # "s-channel_mMed-600_mDark-20_rinv-0.3",
-    # # "s-channel_mMed-600_mDark-20_rinv-0.5",
-    # # "s-channel_mMed-600_mDark-20_rinv-0.7",
+    "s-channel_mMed-500_mDark-20_rinv-0.5",
+    "s-channel_mMed-600_mDark-20_rinv-0.5",
+    "s-channel_mMed-700_mDark-20_rinv-0.5",
+    "s-channel_mMed-800_mDark-20_rinv-0.5",
+    "s-channel_mMed-900_mDark-20_rinv-0.5",
+    "s-channel_mMed-1000_mDark-20_rinv-0.5",
+    "s-channel_mMed-1100_mDark-20_rinv-0.5",
+    "s-channel_mMed-1200_mDark-20_rinv-0.5",
+    "s-channel_mMed-1300_mDark-20_rinv-0.5",
+    "s-channel_mMed-1400_mDark-20_rinv-0.5",
+    "s-channel_mMed-1500_mDark-20_rinv-0.5",
 
-    # "s-channel_mMed-700_mDark-20_rinv-0.3",
-    # # "s-channel_mMed-700_mDark-20_rinv-0.5",
-    # # "s-channel_mMed-700_mDark-20_rinv-0.7",
+    "s-channel_mMed-500_mDark-20_rinv-0.7",
+    "s-channel_mMed-600_mDark-20_rinv-0.7",
+    "s-channel_mMed-700_mDark-20_rinv-0.7",
+    "s-channel_mMed-800_mDark-20_rinv-0.7",
+    "s-channel_mMed-900_mDark-20_rinv-0.7",
+    "s-channel_mMed-1000_mDark-20_rinv-0.7",
+    "s-channel_mMed-1100_mDark-20_rinv-0.7",
+    "s-channel_mMed-1200_mDark-20_rinv-0.7",
+    "s-channel_mMed-1300_mDark-20_rinv-0.7",
+    "s-channel_mMed-1400_mDark-20_rinv-0.7",
+    "s-channel_mMed-1500_mDark-20_rinv-0.7",
 
-    # "s-channel_mMed-800_mDark-20_rinv-0.3",
-    # # "s-channel_mMed-800_mDark-20_rinv-0.5",
-    # # "s-channel_mMed-800_mDark-20_rinv-0.7",
-
-    # "s-channel_mMed-900_mDark-20_rinv-0.3",
-    # # "s-channel_mMed-900_mDark-20_rinv-0.5",
-    # # "s-channel_mMed-900_mDark-20_rinv-0.7",
-
-    # "s-channel_mMed-1000_mDark-20_rinv-0.3",
-    # # "s-channel_mMed-1000_mDark-20_rinv-0.5",
-    # # "s-channel_mMed-1000_mDark-20_rinv-0.7",
-
-    # "s-channel_mMed-1100_mDark-20_rinv-0.3",
-    # # "s-channel_mMed-1100_mDark-20_rinv-0.5",
-    # # "s-channel_mMed-1100_mDark-20_rinv-0.7",
-
-    # "s-channel_mMed-1200_mDark-20_rinv-0.3",
-    # # "s-channel_mMed-1200_mDark-20_rinv-0.5",
-    # # "s-channel_mMed-1200_mDark-20_rinv-0.7",
-
-    # "s-channel_mMed-1300_mDark-20_rinv-0.3",
-    # # "s-channel_mMed-1300_mDark-20_rinv-0.5",
-    # # "s-channel_mMed-1300_mDark-20_rinv-0.7",
-
-    # "s-channel_mMed-1400_mDark-20_rinv-0.3",
-    # # "s-channel_mMed-1400_mDark-20_rinv-0.5",
-    # # "s-channel_mMed-1400_mDark-20_rinv-0.7",
-
-    # "s-channel_mMed-1500_mDark-20_rinv-0.3",
-    # # "s-channel_mMed-1500_mDark-20_rinv-0.5",
-    # # "s-channel_mMed-1500_mDark-20_rinv-0.7",
-
-    # # "s-channel_mMed-3000_mDark-20_rinv-0.3",
-    # # "s-channel_mMed-3000_mDark-20_rinv-0.5",
-    # # "s-channel_mMed-3000_mDark-20_rinv-0.7",
 ]
 
 qcd_bins = [

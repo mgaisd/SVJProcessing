@@ -9,10 +9,10 @@ selection_name=s_channel_scouting_pre_selection/nominal
 #selection_name=t_channel_wnae_top_training_region
 #selection_name=t_channel_lost_lepton_control_region
 
-year=2018
+year=2017
 
 # Output directory for nominal samples - no variation of the uncertainties
-output_directory=root://cmsdcache-kit-disk.gridka.de:1094//store/user/mgaisdor/SVJScouting_skims_JEC
+output_directory=root://cmsdcache-kit-disk.gridka.de:1094//store/user/mgaisdor/SVJScouting_skims_all_corr
 
 
 dataset_names=(
@@ -116,15 +116,15 @@ dataset_names=(
     #
     # Data
     #
-    # Run2017C
-    # Run2017D
-    # Run2017E
-    # Run2017F
+    Run2017C
+    Run2017D
+    Run2017E
+    Run2017F
 
-    Run2018A
-    Run2018B
-    Run2018C
-    Run2018D
+    # Run2018A
+    # Run2018B
+    # Run2018C
+    # Run2018D
 )
 
 check_number_of_events() {

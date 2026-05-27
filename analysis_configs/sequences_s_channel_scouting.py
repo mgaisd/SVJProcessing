@@ -475,5 +475,11 @@ def apply_gap_jet_veto(events):
 def remove_collections(events):
     #remove branch called genModel, hltResultName
     list_branches_to_remove = ["genModel", "hltResultName"]
+    list_collections_to_remove = ["Off", "nOff", "FatJetDarkHadronsubJets", "GenFatJetDarkHadrons"] 
+    for collection in list_collections_to_remove:
+        branches_to_remove = [field for field in events.fields if field.startswith(collection)]
+        list_branches_to_remove.extend(branches_to_remove)
+    #print(f"Removing the following branches from the output file: {list_branches_to_remove}")
     events = events[[key for key in events.fields if key not in list_branches_to_remove]]
+    
     return events

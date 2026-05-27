@@ -31,7 +31,7 @@ pfnano_corrections_file=/work/mgais/SVJProcessing/data/corrections_2026-04-28_18
 #/work/mgais/JEC_SVJProcessing/data/corrections_2026-03-12_00-06-24_jme_corr.coffea
 #/work/mgais/JEC_SVJProcessing/data/corrections_2025-11-21_15-01-21_jme_corr.coffea
 
-year=2018
+year=2017
 
 add_weights_variations=0  # 1 to add PDF/scale weight variations, 0 else
 apply_scouting_jec=1      # 1 to apply custom scouting residual JECs, 0 to disable
@@ -50,19 +50,19 @@ variations=(
 
 # Output directory for nominal samples - no variation of the uncertainties
 #output_directory=root://cmseos.fnal.gov//store/user/lpcdarkqcd/tchannel_UL/${year}/Full/PrivateSkims/${variation}
-output_directory=root://cmsdcache-kit-disk.gridka.de:1094//store/user/mgaisdor/SVJScouting_skims_JEC
+output_directory=root://cmsdcache-kit-disk.gridka.de:1094//store/user/mgaisdor/SVJScouting_skims_all_corr
 
 
 dataset_names=(
-    # Run2017C
-    # Run2017D
-    # Run2017E
-    # Run2017F
+    Run2017C
+    Run2017D
+    Run2017E
+    Run2017F
 
-    Run2018A
-    Run2018B
-    Run2018C
-    Run2018D
+    # Run2018A
+    # Run2018B
+    # Run2018C
+    # Run2018D
 )
 
 

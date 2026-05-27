@@ -94,7 +94,25 @@ def process(events, cut_flow, year, primary_dataset="", dataset_name="", pn_tagg
 
     skimmer_utils.update_cut_flow(cut_flow, "IsolatedLeptonVeto", events)
 
+    # MET filters — good primary vertex filter
+    # Require PV_isValidVtx == 1, |PV_z| <= 24, sqrt(PV_x²+PV_y²) < 2
+    if len(events) != 0:
+        events = sequences.add_good_pv_branch(events)
+        filter_good_pv = ak.sum(events.PV_isGood, axis=1) >= 1
+        events = events[filter_good_pv]
+    skimmer_utils.update_cut_flow(cut_flow, "goodVerticesFilter", events)
+    
+    # could implement experimental bad muon filters (official ones are not reproducible in scouting)
 
+    # Phi spike filter: check subleading good AK8 jet vs dead cells
+    if len(events) != 0:
+        events = sequences.apply_scouting_phi_spike_filter(events, year)
+    skimmer_utils.update_cut_flow(cut_flow, "PhiSpikeFilter", events)
+
+    # Gap jet veto: veto events with high pt leading AK4 jets with high photon energy fraction (mostly important for data/MC in the tails)
+    if len(events) != 0:
+        events = sequences.apply_gap_jet_veto(events)
+    skimmer_utils.update_cut_flow(cut_flow, "GapJetVeto", events)
 
     #apply RT filter (RT = MET over MT)
     if len(events) != 0:
@@ -150,26 +168,6 @@ def process(events, cut_flow, year, primary_dataset="", dataset_name="", pn_tagg
         events = events[filter_mt]
     
     skimmer_utils.update_cut_flow(cut_flow, "MT_selection", events)
-
-    # MET filters — good primary vertex filter
-    # Require PV_isValidVtx == 1, |PV_z| <= 24, sqrt(PV_x²+PV_y²) < 2
-    if len(events) != 0:
-        events = sequences.add_good_pv_branch(events)
-        filter_good_pv = ak.sum(events.PV_isGood, axis=1) >= 1
-        events = events[filter_good_pv]
-    skimmer_utils.update_cut_flow(cut_flow, "goodVerticesFilter", events)
-    
-    # could implement experimental bad muon filters (official ones are not reproducible in scouting)
-
-    # Phi spike filter: check subleading good AK8 jet vs dead cells
-    if len(events) != 0:
-        events = sequences.apply_scouting_phi_spike_filter(events, year)
-    skimmer_utils.update_cut_flow(cut_flow, "PhiSpikeFilter", events)
-
-    # Gap jet veto: veto events with high pt leading AK4 jets with high photon energy fraction (mostly important for data/MC in the tails)
-    if len(events) != 0:
-        events = sequences.apply_gap_jet_veto(events)
-    skimmer_utils.update_cut_flow(cut_flow, "GapJetVeto", events)
 
     # Delta phi min cut
     if len(events) != 0:
