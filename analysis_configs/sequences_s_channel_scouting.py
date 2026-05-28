@@ -408,7 +408,7 @@ def add_dark_quark_matching(events):
 
 
 def apply_scouting_phi_spike_filter(events, year):
-    """Phi spike filter using only the subleading good AK8 jet.
+    """Phi spike filter using only the subleading good AK4 jet.
     Bin centers and radius are read from data/dead_cells/outlier_centers_{year}.txt.
     The distance check follows the convention dist² < rad (consistent with apply_phi_spike_filter).
     """
@@ -436,9 +436,9 @@ def apply_scouting_phi_spike_filter(events, year):
     eta_arr = np.array(eta_centers)
     phi_arr = np.array(phi_centers)
 
-    # Subleading good AK8 jet (index 1)
-    good_jet_eta = events.FatJet_eta[events.FatJet_isGood]
-    good_jet_phi = events.FatJet_phi[events.FatJet_isGood]
+    # Subleading good AK4 jet (index 1)
+    good_jet_eta = events.Jet_eta[events.Jet_isGood]
+    good_jet_phi = events.Jet_phi[events.Jet_isGood]
     sub_eta = ak.to_numpy(ak.fill_none(ak.pad_none(good_jet_eta, 2)[:, 1], np.inf))
     sub_phi = ak.to_numpy(ak.fill_none(ak.pad_none(good_jet_phi, 2)[:, 1], np.inf))
 
@@ -446,6 +446,8 @@ def apply_scouting_phi_spike_filter(events, year):
     # Convention: dist² < rad (same as apply_phi_spike_filter)
     deta = sub_eta[:, np.newaxis] - eta_arr[np.newaxis, :]
     dphi = sub_phi[:, np.newaxis] - phi_arr[np.newaxis, :]
+    dphi = np.where(dphi >  np.pi, dphi - 2.0 * np.pi, dphi)
+    dphi = np.where(dphi < -np.pi, dphi + 2.0 * np.pi, dphi)
     in_spike = np.any(deta**2 + dphi**2 < rad, axis=1)
 
     events = events[~in_spike]
