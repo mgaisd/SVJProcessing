@@ -12,6 +12,7 @@ import cachetools
 from utils.awkward_array_utilities import as_type
 from utils.tree_maker.triggers import trigger_table as trigger_table_treemaker
 from utils.systematics import calc_jec_variation, calc_jer_variation, calc_jerc_variations_PFNano, calc_unclustered_met_variations_PFNano, calc_custom_svj_jes_variations_PFNano, apply_jercs_PFNano, apply_jecs_PFNano, propagate_jecs_to_MET_PFNano, propagate_jecs_to_METSig_PFNano
+from utils.met_jecs_factory import apply_met_xy_corrections
 
 # ---------------------------------------------------------------------------
 # Scouting JEC corrections via correctionlib (direct evaluation)
@@ -315,6 +316,29 @@ def is_mc(events):
 
 def is_data(events):
     return not is_mc(events)
+
+
+def _get_npv_good(events):
+    """Return per-event count of good primary vertices.
+
+    Priority:
+    1. PV_isGood branch (already computed by the analysis sequence)
+    2. Inline scouting good-PV criteria (PV_x, PV_y, PV_z, PV_isValidVtx)
+    3. PV_npvs (standard NanoAOD fallback)
+    """
+    if "PV_isGood" in events.fields:
+        return ak.sum(events.PV_isGood, axis=1)
+    elif "PV_x" in events.fields:
+        is_good = (
+            (events.PV_isValidVtx == 1)
+            & (abs(events.PV_z) <= 24)
+            & ((events.PV_x**2 + events.PV_y**2) < 4)
+        )
+        return ak.sum(is_good, axis=1)
+    elif "PV_npvs" in events.fields:
+        return events.PV_npvs
+    else:
+        raise RuntimeError("Cannot determine npv: no PV_isGood, PV_x, or PV_npvs field found.")
 
 
 #def __jet_var_i(var,i,pad_value=np.Inf):
@@ -889,6 +913,39 @@ def apply_variation_pfnano(events, variation, year, run, pfnano_sys_file):
         events_obj[f"{met_base}_pt_all_corr"] = met_pt_all_corr
         events_obj[f"{met_base}_phi_all_corr"] = met_phi_all_corr
 
+    def _apply_xy_to_met(events_obj):
+        """Apply MET XY (phi modulation) correction on top of the already-stored T1 MET.
+
+        Updates ScoutMET_pt/phi, _all_corr, and _official_only in-place.
+        Does NOT touch _uncorr (raw MET baseline).
+        """
+        met_base = "ScoutMET" if "ScoutMET_pt" in events_obj.fields else "MET"
+        npv = _get_npv_good(events_obj)
+        _is_data = is_data(events_obj)
+        # For data use per-event run numbers; MC run values are not used by the MC correction key
+        run_arr = events_obj.run if _is_data else ak.zeros_like(events_obj.run)
+
+        # XY-correct the primary (all_corr) MET
+        pt_xy, phi_xy = apply_met_xy_corrections(
+            events_obj[f"{met_base}_pt"],
+            events_obj[f"{met_base}_phi"],
+            year, npv, run_arr, _is_data,
+        )
+        events_obj[f"{met_base}_pt"] = pt_xy
+        events_obj[f"{met_base}_phi"] = phi_xy
+        events_obj[f"{met_base}_pt_all_corr"] = pt_xy
+        events_obj[f"{met_base}_phi_all_corr"] = phi_xy
+
+        # XY-correct the official_only MET snapshot (if present)
+        if f"{met_base}_pt_official_only" in events_obj.fields:
+            pt_xy_off, phi_xy_off = apply_met_xy_corrections(
+                events_obj[f"{met_base}_pt_official_only"],
+                events_obj[f"{met_base}_phi_official_only"],
+                year, npv, run_arr, _is_data,
+            )
+            events_obj[f"{met_base}_pt_official_only"] = pt_xy_off
+            events_obj[f"{met_base}_phi_official_only"] = phi_xy_off
+
     if variation in ["nominal","jec_up", "jec_down", "jer_up", "jer_down","SVJjec_up", "SVJjec_down"] and pfnano_sys_file is not None:
         jerc_cache = {}  # Use empty dict instead of cachetools to force fresh calculations
         #load the JEC/JER variations from the pfnano file
@@ -931,6 +988,7 @@ def apply_variation_pfnano(events, variation, year, run, pfnano_sys_file):
                         met_pt_official,
                         met_phi_official,
                     )
+                    _apply_xy_to_met(events)
 
                     #Here propagate the corrections to METSignificance
                     # met_sig_corr_nom = propagate_jecs_to_METSig_PFNano(events,
@@ -1005,6 +1063,7 @@ def apply_variation_pfnano(events, variation, year, run, pfnano_sys_file):
                             met_pt_official,
                             met_phi_official,
                         )
+                        _apply_xy_to_met(events)
 
                     #unpack corrected_JERC_jets
                     jerc_corr_pt, jerc_corr_eta, jerc_corr_phi, jerc_corr_mass, jerc_pt_uncorr, jerc_mass_uncorr = corrected_JERC_jets
@@ -1075,6 +1134,7 @@ def apply_variation_pfnano(events, variation, year, run, pfnano_sys_file):
                             met_pt_official,
                             met_phi_official,
                         )
+                        _apply_xy_to_met(events)
 
                         #Here propagate the corrections to METSignificance
                         # met_sig_corr_nom = propagate_jecs_to_METSig_PFNano(events,
@@ -1149,6 +1209,7 @@ def apply_variation_pfnano(events, variation, year, run, pfnano_sys_file):
                             met_ptcorr,
                             met_phicorr,
                         )
+                        _apply_xy_to_met(events)
 
                         #Here propagate the corrections to METSignificance
                         #CZZ: MET must come from jerc varied collections, otherwise nominal when running the unclustered energy variation
@@ -1196,6 +1257,7 @@ def apply_variation_pfnano(events, variation, year, run, pfnano_sys_file):
         #add the MET corrections
         events["ScoutMET_pt"] = met_ptcorr
         events["ScoutMET_phi"] = met_phicorr
+        _apply_xy_to_met(events)
 
 
         #CZZ: first compute the JEC variations for AK4 and AK8 jets
