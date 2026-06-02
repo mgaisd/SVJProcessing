@@ -80,9 +80,10 @@ def main():
     output_files = sorted(output_files, key=lambda x: int(x.split("/")[-1].split("-")[-1].split(".")[0]))
 
     log.info(f"Input files list: {args.input_files_list}")
-    # log.info("Found the following output files:")
-    # for x in output_files:
-    #     log.info(f"\t{x}")
+    log.info("Found the following output files:")
+    for x in output_files[0:5]:
+        log.info(f"\t{x}")
+    log.info(f"\t... and {len(output_files)-5} more files" if len(output_files) > 5 else "")
 
     if args.nano_aod:
         schema = BaseSchema

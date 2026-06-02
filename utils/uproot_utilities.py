@@ -279,28 +279,11 @@ def write_nano_aod_root_file(output_file_name, events=None, trees={}, mode="recr
         mode (str): "recreate" or "update"
     """
 
-    # Maximum events per write basket to stay within uproot's 2 GB (signed 32-bit)
-    # basket-size limit. Kept small because deeply jagged branches (PFCands) can
-    # easily produce multi-GB baskets even for modest event counts.
-    _WRITE_CHUNK = 3_000
-
     log.blank_line()
     log.info("Writing down output ROOT file %s" % output_file_name)
     with getattr(uproot, mode)(output_file_name) as output_file:
         if events is not None:
-            n_events = len(events)
-            # ak slices are views into the full backing buffers — uproot would
-            # serialise the entire buffer, not just the slice, causing a 2 GB
-            # basket overflow. ak.copy() forces a compact copy first.
-            # Write first chunk — this creates the TTree schema
-            output_file["Events"] = __make_nano_aod_event_tree(
-                ak.copy(events[:min(_WRITE_CHUNK, n_events)])
-            )
-            # Extend with remaining chunks to avoid 2 GB basket overflow
-            for start in range(_WRITE_CHUNK, n_events, _WRITE_CHUNK):
-                output_file["Events"].extend(
-                    __make_nano_aod_event_tree(ak.copy(events[start:start + _WRITE_CHUNK]))
-                )
+            output_file["Events"] = __make_nano_aod_event_tree(events)
             log.info("TTree Events saved to output file")
         for tree_name, tree in trees.items():
             output_file[tree_name] = ak.Array(tree)
