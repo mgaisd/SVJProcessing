@@ -318,27 +318,17 @@ def is_data(events):
     return not is_mc(events)
 
 
-def _get_npv_good(events):
-    """Return per-event count of good primary vertices.
-
-    Priority:
-    1. PV_isGood branch (already computed by the analysis sequence)
-    2. Inline scouting good-PV criteria (PV_x, PV_y, PV_z, PV_isValidVtx)
-    3. PV_npvs (standard NanoAOD fallback)
+def _get_npv_for_met_xy(events):
+    """Return per-event count of primary vertices for MET XY corrections.
+    
+    Uses nPVs branch (scouting data) or PV_npvs (standard NanoAOD).
     """
-    if "PV_isGood" in events.fields:
-        return ak.sum(events.PV_isGood, axis=1)
-    elif "PV_x" in events.fields:
-        is_good = (
-            (events.PV_isValidVtx == 1)
-            & (abs(events.PV_z) <= 24)
-            & ((events.PV_x**2 + events.PV_y**2) < 4)
-        )
-        return ak.sum(is_good, axis=1)
+    if "nPVs" in events.fields:
+        return events.nPVs
     elif "PV_npvs" in events.fields:
         return events.PV_npvs
     else:
-        raise RuntimeError("Cannot determine npv: no PV_isGood, PV_x, or PV_npvs field found.")
+        raise RuntimeError("Cannot determine npv: no nPVs or PV_npvs field found.")
 
 
 #def __jet_var_i(var,i,pad_value=np.Inf):
@@ -920,7 +910,7 @@ def apply_variation_pfnano(events, variation, year, run, pfnano_sys_file):
         Does NOT touch _uncorr (raw MET baseline).
         """
         met_base = "ScoutMET" if "ScoutMET_pt" in events_obj.fields else "MET"
-        npv = _get_npv_good(events_obj)
+        npv = _get_npv_for_met_xy(events_obj)
         _is_data = is_data(events_obj)
         # For data use per-event run numbers; MC run values are not used by the MC correction key
         run_arr = events_obj.run if _is_data else ak.zeros_like(events_obj.run)
