@@ -1,16 +1,28 @@
 #!/bin/bash
 
-MEMORY=4GB
-CORES=1
-CHUNK_SIZE=5000 #10000 or 1000
-N_WORKERS=8
-#EXECUTOR=dask/etpcondor   # HTCondor at KIT ETP
-PORT=3719 # port for dask scheduler, needs to be opened by admins
-#N_WORKERS=6
-EXECUTOR=futures     # local job
-FORCE_RECREATE=1 # 1 to recreate output file if it exists, 0 else
+#MEMORY=4GB
+#CORES=1
+#CHUNK_SIZE=100000 #10000 or 1000
+#N_WORKERS=8
+##EXECUTOR=dask/etpcondor   # HTCondor at KIT ETP
+#PORT=3719 # port for dask scheduler, needs to be opened by admins
+##N_WORKERS=6
+#EXECUTOR=futures     # local job
+#FORCE_RECREATE=1 # 1 to recreate output file if it exists, 0 else
+#FIRST_FILE=0
+#LAST_FILE=-1 #150  # Use -1 to skim all input files
+
+MEMORY=10GB
+TIME=12:00:00
+PARTITION=standard
+CORES=2
+CHUNK_SIZE=100000
+N_WORKERS=300
+#EXECUTOR=dask/lpccondor    # HTCondor at LPC
+EXECUTOR=dask/slurm          #dask/slurm     # local job
+FORCE_RECREATE=1   # 1 to recreate output file if it exists, 0 else
 FIRST_FILE=0
-LAST_FILE=10 #150  # Use -1 to skim all input files
+LAST_FILE=-1  # Use -1 to skim all input files
 
 dataset_directory=/work/cazzanig/datasets_lundtest/
 
@@ -22,7 +34,7 @@ year=2018
 
 add_weights_variations=0  # 1 to add PDF/scale weight variations, 0 else
 apply_scouting_jec=0     # 1 to apply custom scouting residual JECs, 0 to disable
-add_lund_weights_variations=1 # 1 to add Lund weights variations, 0 else
+add_lund_weights_variations=0 # 1 to add Lund weights variations, 0 else
 
 variations=(
     nominal
@@ -38,7 +50,7 @@ variations=(
 
 # Output directory for nominal samples - no variation of the uncertainties
 #output_directory=root://cmseos.fnal.gov//store/user/lpcdarkqcd/tchannel_UL/${year}/Full/PrivateSkims/${variation}
-output_directory=root://t3dcachedb03.psi.ch//pnfs/psi.ch/cms/trivcat/store/t3groups/ethz-susy/skims_lund_test/
+output_directory=root://t3dcachedb03.psi.ch//pnfs/psi.ch/cms/trivcat/store/t3groups/ethz-susy/skims_lund_test/ #_small
 
 
 dataset_names=(
@@ -46,13 +58,15 @@ dataset_names=(
     # Signals
     #
 
-    s-channel_mMed-800_mDark-20_rinv-0.3
-    #s-channel_mMed-800_mDark-20_rinv-0.5
-    #s-channel_mMed-800_mDark-20_rinv-0.7
-
-    #s-channel_mMed-1500_mDark-20_rinv-0.3
-    #s-channel_mMed-1500_mDark-20_rinv-0.5
-    #s-channel_mMed-1500_mDark-20_rinv-0.7
+    s-channel_mMed-800_mDark-20_rinv-0.3_alpha-peak_13TeV-pythia8_n-1500
+    s-channel_mMed-800_mDark-20_rinv-0.5_alpha-peak_13TeV-pythia8_n-1500
+    s-channel_mMed-800_mDark-20_rinv-0.7_alpha-peak_13TeV-pythia8_n-1500
+    s-channel_mMed-1000_mDark-20_rinv-0.3_alpha-peak_13TeV-pythia8_n-1500
+    s-channel_mMed-1000_mDark-20_rinv-0.5_alpha-peak_13TeV-pythia8_n-1500
+    s-channel_mMed-1000_mDark-20_rinv-0.7_alpha-peak_13TeV-pythia8_n-1500
+    s-channel_mMed-1500_mDark-20_rinv-0.3_alpha-peak_13TeV-pythia8_n-1500
+    s-channel_mMed-1500_mDark-20_rinv-0.5_alpha-peak_13TeV-pythia8_n-1500
+    s-channel_mMed-1500_mDark-20_rinv-0.7_alpha-peak_13TeV-pythia8_n-1500
 )
 
 cross_sections=(
@@ -61,12 +75,16 @@ cross_sections=(
     # Signals
     #
     1
-    #1
-    #1
+    1
+    1
 
-    #1
-    #1
-    #1
+    1
+    1
+    1
+
+    1
+    1
+    1
 
 )
 
@@ -102,7 +120,7 @@ make_skims() {
                 local input_files=${files_list_directory}/${files_list}
                 local output_file=${output_directory}/${files_list/.txt/.root}
                 local output_file_name_tmp=$(echo ${ouput_file}_$(date +"%Y%m%d-%H%M%S") | shasum | cut -d " " -f1).root
-                local output_file_tmp=/tmp/${USER}/${output_file_name_tmp}
+                local output_file_tmp=/work/${USER}/tmp/${output_file_name_tmp}
 
                 echo ""
                 echo "Making skim file ${output_file}"
@@ -131,8 +149,11 @@ make_skims() {
                     else
                         lund_weight_variation_flag=""
                     fi
-                    python skim.py -i ${input_files} -o ${output_file_tmp} -p ${module} -pd ${dataset_name} -y ${year} -nano_scout -mc -xsec ${xsec} -e ${EXECUTOR} -port ${PORT} -n ${N_WORKERS} -c ${CHUNK_SIZE} --memory ${MEMORY} --cores ${CORES} -pn_tagger ${variation_flag} ${weight_variation_flag} ${scouting_jec_flag} -lund
+                    #python skim.py -i ${input_files} -o ${output_file_tmp} -p ${module} -pd ${dataset_name} -y ${year} -nano_scout -mc -xsec ${xsec} -e ${EXECUTOR} -n ${N_WORKERS} -c ${CHUNK_SIZE} --memory ${MEMORY} --cores ${CORES} -pn_tagger ${variation_flag} ${weight_variation_flag} ${scouting_jec_flag} -lund -m 1
                     #python skim.py -i ${input_files} -o ${output_file_tmp} -p ${module} -pd ${dataset_name} -y ${year} -nano_scout -mc -xsec ${xsec} -corrfile ${pfnano_corrections_file} -e ${EXECUTOR} -port ${PORT} -n ${N_WORKERS} -c ${CHUNK_SIZE} --memory ${MEMORY} --cores ${CORES} -pn_tagger ${variation_flag} ${weight_variation_flag}
+
+                    python skim.py -i ${input_files} -o ${output_file_tmp} -p ${module} -pd ${dataset_name} -y ${year} -e ${EXECUTOR} -n ${N_WORKERS} -c ${CHUNK_SIZE} --memory ${MEMORY} --queue ${PARTITION} --cores ${CORES} ${variation_flag} ${weight_variation_flag} -xsec ${xsec} -nano_scout -mc -lund -m 1
+
                     xrdcp -f ${output_file_tmp} ${output_file}
                     echo ${output_file} has been saved.
                     rm ${output_file_tmp}

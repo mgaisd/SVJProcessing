@@ -44,6 +44,7 @@ class Skimmer(processor.ProcessorABC):
 
     def process(self, events):
 
+
         cut_flow = {}
         skimmer_utils.update_cut_flow(cut_flow, "Initial", events)
 
@@ -390,7 +391,7 @@ def __prepare_uproot_job_kwargs_from_coffea_args(args):
         time=args.walltime,
         partition=args.queue,
         skip_bad_files=args.skip_bad_files,
-        port=args.port,
+        #port=args.port,
     ))
     # coffea's deprecated run_uproot_job forwards Runner options via executor_args
     executor_args["xrootdtimeout"] = 300 # Increase xrootd timeout to avoid timeouts when running on many files
@@ -456,17 +457,9 @@ def main():
 
     accumulator = skim(input_file_names, args)
 
-    # Making output ROOT file
-    cut_flow_tree = __prepare_cut_flow_tree(accumulator["cut_flow"].value)
-    if args.skim_source:
-        # use original values from the skim's cutFlow
-        cut_flow_tree = skimmer_utils.get_cut_flow_from_skims(args.input_files, cut_flow_tree)
-
-    trees = {
-        "CutFlow": cut_flow_tree
-    }
    
     events = accumulator["events"].value
+    
     if len(events) == 0:
         log.warning("No events passed selection")
         return
@@ -480,10 +473,13 @@ def main():
         nJetsPerEvent_event = ak.num(events["lundWeightNom"], axis=1)
         nJetsPerEvent_lw = ak.num(lund_weights["lundWeightNom"], axis=1)
         to_norm = set([k.split("_")[0] for k in norm.keys()])
+        
         for k in to_norm:
             # apply lund weights per-prong, returns reweighted jet level weights
             events[k] = lund_normalization(events, k, norm, nJetsPerEvent_event)
-            if k in lund_weights.fields: lund_weights[k] = lund_normalization(lund_weights, k, norm, nJetsPerEvent_lw)
+            if k in lund_weights.fields: 
+                lund_weights[k] = lund_normalization(lund_weights, k, norm, nJetsPerEvent_lw)
+                
         # Need the nominal to be processed first
         lund_post(events, 'lundWeightNom')
         lund_post(lund_weights, 'lundWeightNom')
@@ -491,8 +487,12 @@ def main():
             if 'lundWeight' not in f: continue
             if f == 'lundWeightNom': continue
             # take jet level weights to event level, compute stat and pt variations etc
+            print("Event fields: ", f)
             lund_post(events, f, doTestDist=args.distortion)
-            if f in lund_weights.fields: lund_post(lund_weights, f, doTestDist=args.distortion)
+            if f in lund_weights.fields: 
+                lund_post(lund_weights, f, doTestDist=args.distortion)
+
+
 
         #from plot_lund import plotLundWeights
         #plotLundWeights(events)
@@ -505,10 +505,36 @@ def main():
             events, sumw_lund_var_up, sumw_lund_var_down = skimmer_utils.apply_lund_variation(events, f, lund_weights)
             skimmer_utils.update_cut_flow(cut_flow, f"InitialLund{f.capitalize()}Up", sumw=sumw_lund_var_up)
             skimmer_utils.update_cut_flow(cut_flow, f"InitialLund{f.capitalize()}Down", sumw=sumw_lund_var_down)
-            if "pu" in args.weight_variations:
-                events, sumw_lund_var_up_pu_nom, sumw_lund_var_down_pu_nom = skimmer_utils.apply_lund_variation(events, f, lund_weights, pu_weight=True)
-                skimmer_utils.update_cut_flow(cut_flow, f"InitialLund{f.capitalize()}UpPUNom", sumw=sumw_lund_var_up_pu_nom)
-                skimmer_utils.update_cut_flow(cut_flow, f"InitialLund{f.capitalize()}DownPUNom", sumw=sumw_lund_var_down_pu_nom)
+
+
+        #remove from events not useful branches to save space
+        events = events[[x for x in events.fields if x != "lundWeightNsplittings"]]
+        events = events[[x for x in events.fields if x != "lundWeightLpidxs"]]
+        events = events[[x for x in events.fields if x != "lundWeightSplittingweights"]]
+        events = events[[x for x in events.fields if x != "lundWeightSubjetweights"]]
+        events = events[[x for x in events.fields if x != "lundWeightEventStatVars"]]
+        events = events[[x for x in events.fields if x != "lundWeightJetRawDistortion"]]
+        events = events[[x for x in events.fields if x != "lundWeightJetStatVars"]]
+        events = events[[x for x in events.fields if x != "lundWeightNprongs"]]
+        #events = events[[x for x in events.fields if x != "lundWeightPtDown"]]
+        #events = events[[x for x in events.fields if x != "lundWeightPtUp"]]
+        events = events[[x for x in events.fields if x != "lundWeightPtVars"]]
+        #events = events[[x for x in events.fields if x != "lundWeightStatDown"]]
+        #events = events[[x for x in events.fields if x != "lundWeightStatUp"]]
+        events = events[[x for x in events.fields if x != "lundWeightSubjetstatVars"]]
+        events = events[[x for x in events.fields if x != "lundWeightSubjetpts"]]
+        events = events[[x for x in events.fields if x != "lundWeightStatVars"]]
+
+
+    # Making output ROOT file
+    cut_flow_tree = __prepare_cut_flow_tree(accumulator["cut_flow"].value)
+    if args.skim_source:
+        # use original values from the skim's cutFlow
+        cut_flow_tree = skimmer_utils.get_cut_flow_from_skims(args.input_files, cut_flow_tree)
+
+    trees = {
+        "CutFlow": cut_flow_tree
+    }
 
 
     if args.cross_section:

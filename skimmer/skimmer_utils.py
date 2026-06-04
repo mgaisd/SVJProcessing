@@ -848,11 +848,18 @@ def apply_lund_variation(events, var, all_events):
     # Calculate up/down variations from events passing selection only
     weight_name = "Weight" if is_tree_maker(events) else "genWeight"
     nominal_weights = events[weight_name]
+
     weights_up = nominal_weights * events[var+'Up']
     weights_down = nominal_weights * events[var+'Down']
 
+    #replace None values with 1
+    weights_up = ak.fill_none(weights_up, -1)
+    weights_down = ak.fill_none(weights_down, -1)
+
+
     #Lund variations are already added to the events
     if not var.startswith("lund"):
+        print("Adding Lund variations to events: ", "lundWeight"+var+"Up", "lundWeight"+var+"Down")
         # Create the new branches
         events[f"{weight_name}{var}Up"] = weights_up
         events[f"{weight_name}{var}Down"] = weights_down
@@ -865,6 +872,7 @@ def apply_lund_variation(events, var, all_events):
     # Compute the sum of weights for the variations
     sumw_up = ak.sum(all_weights_up)
     sumw_down = ak.sum(all_weights_down)
+
 
     return events, sumw_up, sumw_down
 
