@@ -8,14 +8,14 @@ N_WORKERS=40
 PORT=3719 # port for dask scheduler, needs to be opened by admins
 #N_WORKERS=6
 EXECUTOR=futures     # local job
-FORCE_RECREATE=1 # 1 to recreate output file if it exists, 0 else
+FORCE_RECREATE=0 # 1 to recreate output file if it exists, 0 else
 FIRST_FILE=0
 LAST_FILE=-1 #150  # Use -1 to skim all input files
 
-dataset_directory=/work/mgais/Run2ScoutingSkims_JEC
+dataset_directory=/ceph/mgais/Run2ScoutingSkims_JEC
 
 module=analysis_configs.s_channel_scouting_pre_selection
-selection_name=s_channel_scouting_pre_selection_with_custom_JEC_lepton_veto
+selection_name=s_channel_scouting_pre_selection
 
 #module=analysis_configs.t_channel_wnae_qcd_training_region
 #selection_name=t_channel_wnae_qcd_training_region
@@ -27,13 +27,12 @@ selection_name=s_channel_scouting_pre_selection_with_custom_JEC_lepton_veto
 #selection_name=t_channel_lost_lepton_control_region
 
 #do not pass to skim.py if you want to skip JERC application
-pfnano_corrections_file=/work/mgais/JEC_SVJProcessing/data/corrections_2026-03-12_00-06-24_jme_corr.coffea
-#/work/mgais/JEC_SVJProcessing/data/corrections_2025-11-21_15-01-21_jme_corr.coffea
+pfnano_corrections_file=/work/mgais/SVJProcessing/data/corrections_2026-04-28_18-13-31_all_corr.coffea
 
-year=2017
+year=2018
 
 add_weights_variations=0  # 1 to add PDF/scale weight variations, 0 else
-apply_scouting_jec=1      # 1 to apply custom scouting residual JECs, 0 to disable
+apply_scouting_jec=1      # 1 to apply custom scouting JECs, 0 to disable
 
 variations=(
     nominal
@@ -49,7 +48,7 @@ variations=(
 
 # Output directory for nominal samples - no variation of the uncertainties
 #output_directory=root://cmseos.fnal.gov//store/user/lpcdarkqcd/tchannel_UL/${year}/Full/PrivateSkims/${variation}
-output_directory=root://cmsdcache-kit-disk.gridka.de:1094//store/user/mgaisdor/SVJScouting_skims_JEC
+output_directory=root://cmsdcache-kit-disk.gridka.de:1094//store/user/mgaisdor/SVJScouting_skims_v2
 
 
 dataset_names=(
