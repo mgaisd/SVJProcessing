@@ -875,7 +875,7 @@ def apply_pu_variations(events, year, pfnano_sys_file=None , is_nano=False, mult
 ####### PFNano section ########
 ###############################
 
-def apply_variation_pfnano(events, variation, year, run, pfnano_sys_file):
+def apply_variation_pfnano(events, variation, year, run, pfnano_sys_file, apply_jer=True, apply_residuals=True):
     
     #if variation is None: return events
     #if variatyion is None set variation = "nominal"
@@ -944,8 +944,8 @@ def apply_variation_pfnano(events, variation, year, run, pfnano_sys_file):
         for radius in [4, 8]:
             jet_coll = "Jet" if radius == 4 else "FatJet"
 
-            if variation in ["nominal"]:  
-                
+            if variation in ["nominal"]:
+
                 #here apply JECs and JERs (undo the original jec and apply the updated ones)
                 corrected_JERC_jets  = apply_jercs_PFNano(
                         events,
@@ -954,9 +954,11 @@ def apply_variation_pfnano(events, variation, year, run, pfnano_sys_file):
                         jet_coll,
                         jerc_variations,
                         jerc_cache,
-                        ) 
-                
-                
+                        apply_jer=apply_jer,
+                        apply_residuals=apply_residuals,
+                        )
+
+
                 if radius == 4:
                     #here unpack corrections
                     corrected_MET_updated_JECs = propagate_jecs_to_MET_PFNano(
@@ -966,7 +968,8 @@ def apply_variation_pfnano(events, variation, year, run, pfnano_sys_file):
                         jet_coll,
                         jerc_variations,
                         jerc_cache,
-                        ) 
+                        apply_residuals=apply_residuals,
+                        )
 
                     met_ptcorr, met_phicorr, met_pt_uncorr, met_phi_uncorr, met_pt_official, met_phi_official = corrected_MET_updated_JECs
                     _store_met_versions(
@@ -1028,8 +1031,10 @@ def apply_variation_pfnano(events, variation, year, run, pfnano_sys_file):
                         jet_coll,
                         jerc_variations,
                         jerc_cache,
-                        ) 
-                    
+                        apply_jer=apply_jer,
+                        apply_residuals=apply_residuals,
+                        )
+
 
                     #apply MET-T1 correction to MET
                     if radius == 4:
@@ -1041,7 +1046,8 @@ def apply_variation_pfnano(events, variation, year, run, pfnano_sys_file):
                             jet_coll,
                             jerc_variations,
                             jerc_cache,
-                            ) 
+                            apply_residuals=apply_residuals,
+                            )
 
                         met_ptcorr, met_phicorr, met_pt_uncorr, met_phi_uncorr, met_pt_official, met_phi_official = corrected_MET_updated_JECs
                         _store_met_versions(
@@ -1112,7 +1118,8 @@ def apply_variation_pfnano(events, variation, year, run, pfnano_sys_file):
                             jet_coll,
                             jerc_variations,
                             jerc_cache,
-                            ) 
+                            apply_residuals=apply_residuals,
+                            )
 
                         met_ptcorr, met_phicorr, met_pt_uncorr, met_phi_uncorr, met_pt_official, met_phi_official = corrected_MET_updated_JECs
                         _store_met_versions(
@@ -1262,7 +1269,9 @@ def apply_variation_pfnano(events, variation, year, run, pfnano_sys_file):
                     jet_coll,
                     jerc_variations,
                     jerc_cache,
-                    ) 
+                    apply_jer=apply_jer,
+                    apply_residuals=apply_residuals,
+                    )
             
             #unpack corrected_JER_jets
             jec_corr_pt, jec_corr_eta, jec_corr_phi, jec_corr_mass, jec_pt_uncorr, jec_mass_uncorr = corrected_JEC_jets
