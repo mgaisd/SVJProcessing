@@ -12,7 +12,7 @@ FORCE_RECREATE=0 # 1 to recreate output file if it exists, 0 else
 FIRST_FILE=0
 LAST_FILE=-1 #150  # Use -1 to skim all input files
 
-dataset_directory=/ceph/mgais/Run2ScoutingSkims_JEC
+dataset_directory=/ceph/mgais/Run2ScoutingSkims_v3
 
 module=analysis_configs.s_channel_scouting_pre_selection
 selection_name=s_channel_scouting_pre_selection
@@ -31,7 +31,7 @@ pfnano_corrections_file=/work/mgais/SVJProcessing/data/corrections_2026-04-28_18
 #/work/mgais/JEC_SVJProcessing/data/corrections_2026-03-12_00-06-24_jme_corr.coffea
 #/work/mgais/JEC_SVJProcessing/data/corrections_2025-11-21_15-01-21_jme_corr.coffea
 
-year=2017
+year=2016
 
 add_weights_variations=0  # 1 to add PDF/scale weight variations, 0 else
 apply_scouting_jec=1      # 1 to apply custom scouting residual JECs, 0 to disable
@@ -54,14 +54,22 @@ variations=(
 
 # Output directory for nominal samples - no variation of the uncertainties
 #output_directory=root://cmseos.fnal.gov//store/user/lpcdarkqcd/tchannel_UL/${year}/Full/PrivateSkims/${variation}
-output_directory=root://cmsdcache-kit-disk.gridka.de:1094//store/user/mgaisdor/SVJScouting_skims_v2_noResiduals
+output_directory=root://cmsdcache-kit-disk.gridka.de:1094//store/user/mgaisdor/SVJScouting_skims_v3_noResiduals
 
 
 dataset_names=(
-    Run2017C
-    Run2017D
-    Run2017E
-    Run2017F
+    Run2016B
+    Run2016C
+    Run2016D
+    Run2016E
+    Run2016F
+    Run2016G
+    Run2016H
+
+    # Run2017C
+    # Run2017D
+    # Run2017E
+    # Run2017F
 
     # Run2018A
     # Run2018B
@@ -94,7 +102,7 @@ make_skims() {
     fi
 
     # Derive run era from dataset name:
-    #   Run2017C/D/E/F -> C/D/E/F (no "Run" prefix needed, year=2017)
+    #   Run2016B-H, Run2017C/D/E/F -> B-H, C/D/E/F (no "Run" prefix needed)
     #   Run2018A/B/C/D -> RunA/RunB/RunC/RunD (year=2018 uses "Run" prefix)
     local run_era_flag=""
     if [[ ${dataset_name} =~ Run20[0-9][0-9]([A-Z]+) ]]; then

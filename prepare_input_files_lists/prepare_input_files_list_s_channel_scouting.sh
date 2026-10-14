@@ -1,6 +1,6 @@
 #!/bin/bash
 
-dataset_directory=/ceph/mgais/Run2ScoutingSkims_JEC
+dataset_directory=/ceph/mgais/Run2ScoutingSkims_v3
 dataset_config=dataset_configs.s_channel_scouting_dataset_paths
 
 module=analysis_configs.s_channel_scouting_pre_selection
@@ -15,24 +15,24 @@ selection_name=s_channel_scouting_pre_selection
 #module=analysis_configs.t_channel_lost_lepton_control_region
 #selection_name=t_channel_lost_lepton_control_region
 
-year=2017
+year=2016
 
 dataset_names=(
     #
     # Signals
     #
 
-    s-channel_mMed-500_mDark-20_rinv-0.3
-    s-channel_mMed-600_mDark-20_rinv-0.3
-    s-channel_mMed-700_mDark-20_rinv-0.3
-    s-channel_mMed-800_mDark-20_rinv-0.3
-    s-channel_mMed-900_mDark-20_rinv-0.3
-    s-channel_mMed-1000_mDark-20_rinv-0.3
-    s-channel_mMed-1100_mDark-20_rinv-0.3
-    s-channel_mMed-1200_mDark-20_rinv-0.3
-    s-channel_mMed-1300_mDark-20_rinv-0.3
-    s-channel_mMed-1400_mDark-20_rinv-0.3
-    s-channel_mMed-1500_mDark-20_rinv-0.3
+    # s-channel_mMed-500_mDark-20_rinv-0.3
+    # s-channel_mMed-600_mDark-20_rinv-0.3
+    # s-channel_mMed-700_mDark-20_rinv-0.3
+    # s-channel_mMed-800_mDark-20_rinv-0.3
+    # s-channel_mMed-900_mDark-20_rinv-0.3
+    # s-channel_mMed-1000_mDark-20_rinv-0.3
+    # s-channel_mMed-1100_mDark-20_rinv-0.3
+    # s-channel_mMed-1200_mDark-20_rinv-0.3
+    # s-channel_mMed-1300_mDark-20_rinv-0.3
+    # s-channel_mMed-1400_mDark-20_rinv-0.3
+    # s-channel_mMed-1500_mDark-20_rinv-0.3
 
     # s-channel_mMed-500_mDark-20_rinv-0.5
     # s-channel_mMed-600_mDark-20_rinv-0.5
@@ -108,6 +108,15 @@ dataset_names=(
     #
     # scouting_data
     #
+
+    Run2016B
+    Run2016C
+    Run2016D
+    Run2016E
+    Run2016F
+    Run2016G
+    Run2016H
+
     # Run2017C
     # Run2017D
     # Run2017E
@@ -132,8 +141,8 @@ prepare_input_files_list() {
     echo ""
     echo "Preparing input files for dataset ${dataset_name} year ${year} and selection ${selection_name}"
 
-    #python list_dataset_files.py -d ${dataset_name} -y ${year} -c ${dataset_config} -o ${dataset_directory} -nano_scout
-    #python compute_unweighted_selection_efficiency.py -d ${dataset_name} -y ${year} -p ${module} -s ${selection_name} -i ${dataset_directory} -o ${dataset_directory} -n 30 -e futures -c 1000 -nano_scout  -precision 15
+    python list_dataset_files.py -d ${dataset_name} -y ${year} -c ${dataset_config} -o ${dataset_directory} -nano_scout
+    python compute_unweighted_selection_efficiency.py -d ${dataset_name} -y ${year} -p ${module} -s ${selection_name} -i ${dataset_directory} -o ${dataset_directory} -n 30 -e futures -c 1000 -nano_scout  -precision 15
     python prepare_input_files_list.py -d ${dataset_name} -y ${year} -s ${selection_name} -i ${dataset_directory} -o ${dataset_directory} -m 10000 #5000
 }
 
